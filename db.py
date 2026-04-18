@@ -193,3 +193,12 @@ def reset_db():
     c.execute('DELETE FROM app_state WHERE key = "competition_start_time"')
     conn.commit()
     conn.close()
+
+def reset_scores():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE students SET score = 0, solved_questions = '[]'")
+    c.execute('UPDATE app_state SET value = "false" WHERE key = "competition_started"')
+    c.execute('DELETE FROM app_state WHERE key = "competition_start_time"')
+    conn.commit()
+    conn.close()

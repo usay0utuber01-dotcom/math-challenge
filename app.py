@@ -168,17 +168,18 @@ def admin_page():
         with col2:
             st.subheader("Boshqaruv")
             
+            is_started = db.is_competition_started()
+            
             # Time limit setting
             current_limit_minutes = db.get_competition_time_limit() // 60
-            new_limit = st.number_input("⏳ O'yin vaqti (daqiqa):", min_value=1, max_value=300, value=current_limit_minutes)
-            if new_limit != current_limit_minutes:
+            new_limit = st.number_input("⏳ O'yin vaqti (daqiqa):", min_value=1, max_value=300, value=current_limit_minutes, disabled=is_started)
+            
+            if new_limit != current_limit_minutes and not is_started:
                 db.set_competition_time_limit(new_limit * 60)
                 st.success("Vaqt o'zgartirildi!")
                 time.sleep(0.5)
                 st.rerun()
                 
-            is_started = db.is_competition_started()
-            
             if not is_started:
                 st.warning("Musobaqa to'xtatilgan/kutilmoqda.")
                 if st.button("🟢 Musobaqani boshlash"):
@@ -220,17 +221,31 @@ def admin_page():
                     st.rerun()
                     
             st.markdown("---")
-            if st.button("⚠️ Bazani tozalash (Restart)"):
+            if st.button("🔄 Natijalarni nollash (O'quvchilar qoladi)"):
+                st.session_state['confirm_reset_scores'] = True
+                
+            if st.session_state.get('confirm_reset_scores', False):
+                st.warning("Barcha natijalar va vaqt nollanadi. Davom etamizmi?")
+                c1, c2 = st.columns(2)
+                if c1.button("Ha, nollash", key="btn_yes_scores"):
+                    db.reset_scores()
+                    st.session_state['confirm_reset_scores'] = False
+                    st.rerun()
+                if c2.button("Bekor qilish", key="btn_no_scores"):
+                    st.session_state['confirm_reset_scores'] = False
+                    st.rerun()
+                    
+            if st.button("⚠️ Barcha o'quvchilarni o'chirish"):
                 st.session_state['confirm_reset'] = True
                 
             if st.session_state.get('confirm_reset', False):
-                st.warning("Haqiqatan ham o'chirmoqchimisiz? Barcha natijalar yo'qoladi!")
+                st.warning("Haqiqatan ham hamma o'quvchilarni tizimdan o'chirmoqchimisiz?")
                 c1, c2 = st.columns(2)
-                if c1.button("Ha, o'chirish"):
+                if c1.button("Ha, o'chirish", key="btn_yes_all"):
                     db.reset_db()
                     st.session_state['confirm_reset'] = False
                     st.rerun()
-                if c2.button("Bekor qilish"):
+                if c2.button("Bekor qilish", key="btn_no_all"):
                     st.session_state['confirm_reset'] = False
                     st.rerun()
                 
