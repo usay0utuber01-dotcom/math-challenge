@@ -277,9 +277,32 @@ def student_page():
         time_left = get_time_left()
         st.sidebar.markdown("---")
         if time_left > 0:
-            st.sidebar.metric("⏳ Qolgan vaqt", format_time(time_left))
-            # Refresh every 10 seconds for timer updates if active
-            st_autorefresh(interval=10000, key="student_timer_refresh")
+            import streamlit.components.v1 as components
+            html_code = f"""
+            <div style="font-family: sans-serif; padding: 10px; background: #262730; color: white; border-radius: 8px; text-align: center; font-size: 1.2rem; font-weight: bold; border: 1px solid #38bdf8;">
+                ⏳ <span id="clock">{format_time(time_left)}</span>
+            </div>
+            <script>
+            var timeLeft = {int(time_left)};
+            var clock = document.getElementById('clock');
+            var timerId = setInterval(function() {{
+                timeLeft--;
+                if (timeLeft <= 0) {{
+                    clearInterval(timerId);
+                    clock.innerHTML = "Vaqt tugadi!";
+                    clock.style.color = "#ef4444";
+                    // Reload parent page to trigger Streamlit's time up screen
+                    window.parent.location.reload();
+                }} else {{
+                    var m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                    var s = Math.floor(timeLeft % 60).toString().padStart(2, '0');
+                    clock.innerHTML = m + ":" + s;
+                }}
+            }}, 1000);
+            </script>
+            """
+            st.sidebar.markdown("---")
+            st.sidebar.components.v1.html(html_code, height=60)
         else:
             st.sidebar.error("Vaqt tugadi!")
     
