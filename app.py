@@ -122,8 +122,22 @@ def admin_page():
         if students:
             df = pd.DataFrame(students)
             df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
-            df = df[['first_name', 'last_name', 'score', 'Progress']]
-            df.columns = ["Ism", "Familiya", "Ball", "Natija"]
+            
+            ranks = []
+            for i in range(len(df)):
+                rank = i + 1
+                if rank == 1:
+                    ranks.append("👑 1")
+                elif rank == 2:
+                    ranks.append("👑 2")
+                elif rank == 3:
+                    ranks.append("👑 3")
+                else:
+                    ranks.append(str(rank))
+            df["O'rin"] = ranks
+            
+            df = df[["O'rin", 'first_name', 'last_name', 'score', 'Progress']]
+            df.columns = ["O'rin", "Ism", "Familiya", "Ball", "Natija"]
             # Convert progress to "X/20"
             df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{len(QUESTIONS)}")
             
@@ -213,12 +227,27 @@ def student_page():
             st.markdown("<h3 class='leaderboard-header'>Jonli Reyting</h3>", unsafe_allow_html=True)
             
             students = db.get_all_students()
-            df = pd.DataFrame(students)
-            df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
-            df = df[['first_name', 'last_name', 'score', 'Progress']]
-            df.columns = ["Ism", "Familiya", "Ball", "Natija"]
-            df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{len(QUESTIONS)}")
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            if students:
+                df = pd.DataFrame(students)
+                df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
+                
+                ranks = []
+                for i in range(len(df)):
+                    rank = i + 1
+                    if rank == 1:
+                        ranks.append("👑 1")
+                    elif rank == 2:
+                        ranks.append("👑 2")
+                    elif rank == 3:
+                        ranks.append("👑 3")
+                    else:
+                        ranks.append(str(rank))
+                df["O'rin"] = ranks
+                
+                df = df[["O'rin", 'first_name', 'last_name', 'score', 'Progress']]
+                df.columns = ["O'rin", "Ism", "Familiya", "Ball", "Natija"]
+                df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{len(QUESTIONS)}")
+                st.dataframe(df, use_container_width=True, hide_index=True)
         else:
             # Show all questions
             st.markdown("## Savollar", unsafe_allow_html=True)
