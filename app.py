@@ -302,7 +302,8 @@ def student_page():
             </script>
             """
             st.sidebar.markdown("---")
-            st.sidebar.components.v1.html(html_code, height=60)
+            with st.sidebar:
+                components.html(html_code, height=60)
         else:
             st.sidebar.error("Vaqt tugadi!")
     
