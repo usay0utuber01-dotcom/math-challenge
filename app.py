@@ -3,7 +3,6 @@ from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import time
 import db
-from questions import QUESTIONS
 
 # Initialize Database
 db.init_db()
@@ -52,6 +51,13 @@ st.markdown("""
     .streamlit-expanderHeader {
         font-size: 1.1rem;
         font-weight: bold;
+    }
+    
+    /* LaTeX / Math styling */
+    .katex-display {
+        margin: 1em 0;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -114,66 +120,126 @@ def admin_page():
     
     st.title("🛡️ Admin Dashboard")
     
-    col1, col2 = st.columns([2, 1])
+    tab1, tab2 = st.tabs(["📊 Jonli Reyting va Boshqaruv", "📝 Savollarni Boshqarish"])
     
-    with col1:
-        st.markdown("<h3 class='leaderboard-header'>Jonli Reyting</h3>", unsafe_allow_html=True)
-        students = db.get_all_students()
-        if students:
-            df = pd.DataFrame(students)
-            df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
-            
-            ranks = []
-            for i in range(len(df)):
-                rank = i + 1
-                if rank == 1:
-                    ranks.append("👑 1")
-                elif rank == 2:
-                    ranks.append("👑 2")
-                elif rank == 3:
-                    ranks.append("👑 3")
-                else:
-                    ranks.append(str(rank))
-            df["O'rin"] = ranks
-            
-            df = df[["O'rin", 'first_name', 'last_name', 'score', 'Progress']]
-            df.columns = ["O'rin", "Ism", "Familiya", "Ball", "Natija"]
-            # Convert progress to "X/20"
-            df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{len(QUESTIONS)}")
-            
-            st.dataframe(df, use_container_width=True, hide_index=True)
-        else:
-            st.info("Hali hech kim kirmadi.")
-            
-    with col2:
-        st.subheader("Boshqaruv")
-        is_started = db.is_competition_started()
+    questions_db = db.get_all_questions()
+    total_q = len(questions_db)
+    
+    with tab1:
+        col1, col2 = st.columns([2, 1])
         
-        if not is_started:
-            st.warning("Musobaqa to'xtatilgan/kutilmoqda.")
-            if st.button("🟢 Musobaqani boshlash"):
-                db.set_competition_started(True)
-                st.rerun()
-        else:
-            time_left = get_time_left()
-            if time_left > 0:
-                st.success("Musobaqa qizg'in pallada.")
-                st.metric("Qolgan vaqt", format_time(time_left))
+        with col1:
+            st.markdown("<h3 class='leaderboard-header'>Jonli Reyting</h3>", unsafe_allow_html=True)
+            students = db.get_all_students()
+            if students:
+                df = pd.DataFrame(students)
+                df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
+                
+                ranks = []
+                for i in range(len(df)):
+                    rank = i + 1
+                    if rank == 1:
+                        ranks.append("👑 1")
+                    elif rank == 2:
+                        ranks.append("👑 2")
+                    elif rank == 3:
+                        ranks.append("👑 3")
+                    else:
+                        ranks.append(str(rank))
+                df["O'rin"] = ranks
+                
+                df = df[["O'rin", 'first_name', 'last_name', 'score', 'Progress']]
+                df.columns = ["O'rin", "Ism", "Familiya", "Ball", "Natija"]
+                # Convert progress to "X/total_q"
+                df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{total_q}")
+                
+                st.dataframe(df, use_container_width=True, hide_index=True)
+                
+                # CSV Export
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Natijalarni yuklab olish (CSV)",
+                    data=csv,
+                    file_name='natijalar.csv',
+                    mime='text/csv',
+                )
             else:
-                st.error("Musobaqa vaqti tugadi.")
+                st.info("Hali hech kim kirmadi.")
                 
-            if st.button("🛑 To'xtatish"):
-                db.set_competition_started(False)
-                st.rerun()
-                
-        st.markdown("---")
-        if st.button("⚠️ Bazani tozalash (Restart)"):
-            db.reset_db()
-            st.rerun()
+        with col2:
+            st.subheader("Boshqaruv")
+            is_started = db.is_competition_started()
             
-        if st.button("Tizimdan chiqish"):
-            st.session_state["role"] = None
-            st.rerun()
+            if not is_started:
+                st.warning("Musobaqa to'xtatilgan/kutilmoqda.")
+                if st.button("🟢 Musobaqani boshlash"):
+                    db.set_competition_started(True)
+                    st.rerun()
+            else:
+                time_left = get_time_left()
+                if time_left > 0:
+                    st.success("Musobaqa qizg'in pallada.")
+                    st.metric("Qolgan vaqt", format_time(time_left))
+                else:
+                    st.error("Musobaqa vaqti tugadi.")
+                    
+                if st.button("🛑 To'xtatish"):
+                    db.set_competition_started(False)
+                    st.rerun()
+                    
+            st.markdown("---")
+            if st.button("⚠️ Bazani tozalash (Restart)"):
+                st.session_state['confirm_reset'] = True
+                
+            if st.session_state.get('confirm_reset', False):
+                st.warning("Haqiqatan ham o'chirmoqchimisiz? Barcha natijalar yo'qoladi!")
+                c1, c2 = st.columns(2)
+                if c1.button("Ha, o'chirish"):
+                    db.reset_db()
+                    st.session_state['confirm_reset'] = False
+                    st.rerun()
+                if c2.button("Bekor qilish"):
+                    st.session_state['confirm_reset'] = False
+                    st.rerun()
+                
+            st.markdown("---")
+            if st.button("Tizimdan chiqish"):
+                st.session_state["role"] = None
+                st.rerun()
+
+    with tab2:
+        st.subheader("Barcha savollar")
+        
+        if not questions_db:
+            st.info("Hozircha savollar yo'q.")
+        
+        for idx, q in enumerate(questions_db):
+            with st.container():
+                c1, c2 = st.columns([5, 1])
+                c1.markdown(f"**{idx+1}. {q['topic']}** (Ball: {q['score']})")
+                c1.markdown(f"{q['question']}")
+                c1.markdown(f"*Javoblar:* `{q['answer']}`")
+                
+                if c2.button("🗑️ O'chirish", key=f"del_{q['id']}"):
+                    db.delete_question(q['id'])
+                    st.success("Savol o'chirildi!")
+                    st.rerun()
+            st.markdown("---")
+            
+        with st.expander("➕ Yangi savol qo'shish", expanded=False):
+            with st.form("add_question_form"):
+                new_topic = st.text_input("Mavzu")
+                new_q = st.text_area("Savol matni (Matematik formulalarni $ $ belgisi ichiga yozishingiz mumkin)")
+                new_ans = st.text_input("To'g'ri javob (bir nechta variant bo'lsa | bilan ajrating)")
+                new_score = st.number_input("Ball", min_value=1, value=10)
+                
+                if st.form_submit_button("Qo'shish"):
+                    if new_topic and new_q and new_ans:
+                        db.add_question(new_topic, new_q, new_ans, new_score)
+                        st.success("Yangi savol qo'shildi!")
+                        st.rerun()
+                    else:
+                        st.error("Barcha maydonlarni to'ldiring!")
 
 def student_page():
     student_id = st.session_state["student_id"]
@@ -186,10 +252,26 @@ def student_page():
     is_started = db.is_competition_started()
     solved = student.get("solved_questions", [])
     
+    questions_db = db.get_all_questions()
+    total_q = len(questions_db)
+    
+    # Calculate rank
+    students = db.get_all_students()
+    my_rank = "-"
+    for i, s in enumerate(students):
+        if s['id'] == student_id:
+            my_rank = i + 1
+            break
+            
+    rank_str = f"👑 {my_rank}" if my_rank in [1, 2, 3] else str(my_rank)
+    
     st.sidebar.title(f"👤 {student['first_name']} {student['last_name']}")
+    st.sidebar.markdown(f"### 🏆 O'rningiz: {rank_str}")
     st.sidebar.metric("Sizning ballingiz", student["score"])
-    st.sidebar.progress(len(solved) / len(QUESTIONS))
-    st.sidebar.write(f"Natija: {len(solved)}/{len(QUESTIONS)}")
+    
+    progress_val = len(solved) / total_q if total_q > 0 else 0
+    st.sidebar.progress(progress_val)
+    st.sidebar.write(f"Natija: {len(solved)}/{total_q}")
     
     if is_started:
         time_left = get_time_left()
@@ -216,7 +298,7 @@ def student_page():
         if time_left <= 0:
             # Completed / Time up
             st_autorefresh(interval=5000, key="student_completed_refresh")
-            if len(solved) == len(QUESTIONS):
+            if len(solved) == total_q and total_q > 0:
                 st.balloons()
                 st.markdown("<h2 style='text-align: center; color: #10B981;'>🏆 Barcha savollarni yakunladingiz!</h2>", unsafe_allow_html=True)
             else:
@@ -226,7 +308,6 @@ def student_page():
             st.markdown("---")
             st.markdown("<h3 class='leaderboard-header'>Jonli Reyting</h3>", unsafe_allow_html=True)
             
-            students = db.get_all_students()
             if students:
                 df = pd.DataFrame(students)
                 df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
@@ -246,25 +327,27 @@ def student_page():
                 
                 df = df[["O'rin", 'first_name', 'last_name', 'score', 'Progress']]
                 df.columns = ["O'rin", "Ism", "Familiya", "Ball", "Natija"]
-                df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{len(QUESTIONS)}")
+                df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{total_q}")
                 st.dataframe(df, use_container_width=True, hide_index=True)
         else:
             # Show all questions
             st.markdown("## Savollar", unsafe_allow_html=True)
             st.info("💡 Istalgan savoldan boshlashingiz mumkin. Xato javob uchun ball olinmaydi, qayta urinib ko'rish cheklanmagan.")
             
-            for i, q in enumerate(QUESTIONS):
-                is_solved = i in solved
+            for idx, q in enumerate(questions_db):
+                q_id = q['id']
+                is_solved = q_id in solved
                 icon = "✅" if is_solved else "📝"
                 
-                with st.expander(f"{icon} {i+1}-savol", expanded=False):
-                    st.markdown(f"**Mavzu:** {q['topic']}")
-                    st.write(q["question"])
+                with st.expander(f"{icon} {idx+1}-savol", expanded=False):
+                    st.markdown(f"**Mavzu:** {q['topic']} (Ball: {q['score']})")
+                    # Using st.markdown allows LaTeX rendering if wrapped in $
+                    st.markdown(q["question"])
                     
                     if is_solved:
-                        st.success("Siz bu savolga to'g'ri javob bergansiz! 🎉")
+                        st.success(f"Siz bu savolga to'g'ri javob bergansiz! 🎉 (+{q['score']} ball)")
                     else:
-                        with st.form(key=f"q_form_{i}"):
+                        with st.form(key=f"q_form_{q_id}"):
                             choice = st.text_input("Javobingizni kiriting:")
                             submitted = st.form_submit_button("Javobni tekshirish")
                             
@@ -277,9 +360,9 @@ def student_page():
                                     
                                     if user_ans in correct_answers:
                                         st.balloons()
-                                        st.success("To'g'ri! 🎉 +10 ball")
-                                        new_score = student["score"] + 10
-                                        solved.append(i)
+                                        st.success(f"To'g'ri! 🎉 +{q['score']} ball")
+                                        new_score = student["score"] + q['score']
+                                        solved.append(q_id)
                                         db.update_score(student_id, new_score, solved)
                                         time.sleep(1)
                                         st.rerun()

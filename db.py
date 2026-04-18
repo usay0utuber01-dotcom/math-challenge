@@ -2,6 +2,7 @@ import sqlite3
 import os
 import time
 import json
+from questions import QUESTIONS
 
 DB_PATH = "math_challenge.db"
 
@@ -30,8 +31,50 @@ def init_db():
             value TEXT NOT NULL
         )
     ''')
+    # Create questions table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            topic TEXT NOT NULL,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            score INTEGER DEFAULT 10
+        )
+    ''')
+    
     # Initialize competition state if not exists
     c.execute('INSERT OR IGNORE INTO app_state (key, value) VALUES ("competition_started", "false")')
+    
+    # Seed questions if table is empty
+    c.execute('SELECT COUNT(*) FROM questions')
+    if c.fetchone()[0] == 0:
+        for q in QUESTIONS:
+            c.execute('INSERT INTO questions (topic, question, answer, score) VALUES (?, ?, ?, ?)',
+                      (q['topic'], q['question'], q['answer'], 10))
+                      
+    conn.commit()
+    conn.close()
+
+def get_all_questions():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('SELECT * FROM questions ORDER BY id ASC')
+    questions = c.fetchall()
+    conn.close()
+    return [dict(q) for q in questions]
+
+def add_question(topic, question, answer, score=10):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('INSERT INTO questions (topic, question, answer, score) VALUES (?, ?, ?, ?)',
+              (topic, question, answer, score))
+    conn.commit()
+    conn.close()
+
+def delete_question(question_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('DELETE FROM questions WHERE id = ?', (question_id,))
     conn.commit()
     conn.close()
 
