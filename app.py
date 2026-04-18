@@ -59,6 +59,25 @@ st.markdown("""
         overflow-x: auto;
         overflow-y: hidden;
     }
+    
+    /* Responsive design for mobile */
+    @media (max-width: 768px) {
+        .main-header {
+            font-size: 2rem !important;
+            margin-bottom: 1rem !important;
+        }
+        .leaderboard-header {
+            font-size: 1.5rem !important;
+            margin-top: 1rem !important;
+        }
+        .stButton > button {
+            height: 2.5rem !important;
+            font-size: 0.9rem !important;
+        }
+        .streamlit-expanderHeader {
+            font-size: 1rem !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
