@@ -68,14 +68,13 @@ if "role" not in st.session_state:
 if "student_id" not in st.session_state:
     st.session_state["student_id"] = None
 
-TOTAL_TIME_SECONDS = 30 * 60  # 30 minutes
-
 def get_time_left():
+    limit = db.get_competition_time_limit()
     start_time = db.get_competition_start_time()
     if not start_time:
-        return TOTAL_TIME_SECONDS
+        return limit
     elapsed = time.time() - start_time
-    remaining = TOTAL_TIME_SECONDS - elapsed
+    remaining = limit - elapsed
     return max(0, remaining)
 
 def format_time(seconds):
@@ -168,6 +167,16 @@ def admin_page():
                 
         with col2:
             st.subheader("Boshqaruv")
+            
+            # Time limit setting
+            current_limit_minutes = db.get_competition_time_limit() // 60
+            new_limit = st.number_input("⏳ O'yin vaqti (daqiqa):", min_value=1, max_value=300, value=current_limit_minutes)
+            if new_limit != current_limit_minutes:
+                db.set_competition_time_limit(new_limit * 60)
+                st.success("Vaqt o'zgartirildi!")
+                time.sleep(0.5)
+                st.rerun()
+                
             is_started = db.is_competition_started()
             
             if not is_started:
@@ -179,7 +188,30 @@ def admin_page():
                 time_left = get_time_left()
                 if time_left > 0:
                     st.success("Musobaqa qizg'in pallada.")
-                    st.metric("Qolgan vaqt", format_time(time_left))
+                    import streamlit.components.v1 as components
+                    html_code = f"""
+                    <div style="font-family: sans-serif; padding: 10px; background: #262730; color: white; border-radius: 8px; text-align: center; font-size: 1.2rem; font-weight: bold; border: 1px solid #38bdf8;">
+                        ⏳ <span id="admin_clock">{format_time(time_left)}</span>
+                    </div>
+                    <script>
+                    var timeLeft = {int(time_left)};
+                    var clock = document.getElementById('admin_clock');
+                    var timerId = setInterval(function() {{
+                        timeLeft--;
+                        if (timeLeft <= 0) {{
+                            clearInterval(timerId);
+                            clock.innerHTML = "Vaqt tugadi!";
+                            clock.style.color = "#ef4444";
+                            window.parent.location.reload();
+                        }} else {{
+                            var m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                            var s = Math.floor(timeLeft % 60).toString().padStart(2, '0');
+                            clock.innerHTML = m + ":" + s;
+                        }}
+                    }}, 1000);
+                    </script>
+                    """
+                    components.html(html_code, height=60)
                 else:
                     st.error("Musobaqa vaqti tugadi.")
                     

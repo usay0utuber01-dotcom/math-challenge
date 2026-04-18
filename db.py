@@ -137,6 +137,26 @@ def is_competition_started():
         return row['value'] == 'true'
     return False
 
+def get_competition_time_limit():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('SELECT value FROM app_state WHERE key = "competition_time_limit"')
+    row = c.fetchone()
+    conn.close()
+    if row:
+        try:
+            return int(row['value'])
+        except ValueError:
+            return 30 * 60
+    return 30 * 60  # Default 30 minutes
+
+def set_competition_time_limit(seconds):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('INSERT OR REPLACE INTO app_state (key, value) VALUES ("competition_time_limit", ?)', (str(seconds),))
+    conn.commit()
+    conn.close()
+
 def get_competition_start_time():
     conn = get_connection()
     c = conn.cursor()
