@@ -38,6 +38,7 @@ def init_db():
             password TEXT NOT NULL,
             score INTEGER DEFAULT 0,
             solved_questions TEXT DEFAULT '[]',
+            last_active REAL,
             FOREIGN KEY (competition_id) REFERENCES competitions (id) ON DELETE CASCADE
         )
     ''')
@@ -71,6 +72,12 @@ def init_db():
             c.execute('INSERT INTO questions (competition_id, topic, question, answer, score) VALUES (?, ?, ?, ?, ?)',
                       (default_id, q['topic'], q['question'], q['answer'], score))
                       
+    # Migration: Add last_active if it doesn't exist
+    try:
+        c.execute('ALTER TABLE students ADD COLUMN last_active REAL')
+    except sqlite3.OperationalError:
+        pass # Already exists
+        
     conn.commit()
     conn.close()
 
@@ -249,3 +256,17 @@ def reset_scores(competition_id):
     conn.commit()
     conn.close()
 
+def update_last_active(student_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('UPDATE students SET last_active = ? WHERE id = ?', (time.time(), student_id))
+    conn.commit()
+    conn.close()
+
+def delete_inactive_students(competition_id):
+    conn = get_connection()
+    c = conn.cursor()
+    # Delete students with 0 score
+    c.execute('DELETE FROM students WHERE competition_id = ? AND score = 0', (competition_id,))
+    conn.commit()
+    conn.close()

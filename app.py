@@ -323,7 +323,17 @@ def admin_page():
     with tab1:
         col1, col2 = st.columns([2, 1])
         with col1:
-            st.markdown("<div class='glass-card'><h3>Jonli Reyting</h3>", unsafe_allow_html=True)
+            st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+            head_col1, head_col2 = st.columns([3, 1])
+            with head_col1:
+                st.markdown("<h3>Jonli Reyting</h3>", unsafe_allow_html=True)
+            with head_col2:
+                if st.button("🧹 Filter", key="filter_btn"):
+                    db.delete_inactive_students(comp_id)
+                    st.success("O'chirildi!")
+                    time.sleep(1)
+                    st.rerun()
+            
             if students:
                 df = pd.DataFrame(students)
                 df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
@@ -411,6 +421,7 @@ def student_page():
         time_left = get_time_left(comp)
         if time_left > 0:
             st_autorefresh(interval=5000, key="st_active")
+            db.update_last_active(student_id)
             import streamlit.components.v1 as components
             end_ts = time.time() + time_left
             html_st_timer = f"""<div style="font-family:sans-serif;background:#0f172a;color:#f43f5e;padding:10px;border-radius:10px;text-align:center;font-size:1.2rem;font-weight:800;border:2px solid #f43f5e;margin-bottom:5px;"><span id="st">--:--</span></div>
