@@ -26,7 +26,7 @@ st.markdown("""
         -webkit-backdrop-filter: blur(10px);
         border-radius: 15px;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 20px;
+        padding: 15px 20px; /* Reduced top/bottom padding */
         margin-bottom: 20px;
     }
 
@@ -225,11 +225,12 @@ def login_page():
     col1, col2, col3 = st.columns([1, 1.8, 1])
     
     with col2:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         if not st.session_state["temp_comp"]:
-            st.subheader("Musobaqa kodini kiriting")
+            st.markdown("""
+                <div class="glass-card">
+                    <h3 style="margin-top:0; margin-bottom:15px; text-align:center;">Musobaqa kodini kiriting</h3>
+            """, unsafe_allow_html=True)
             comp_code = st.text_input("Imtihon kodi", key="main_code_input", placeholder="Masalan: 1234", label_visibility="collapsed")
-            st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Davom etish"):
                 if comp_code == "502500560":
                     st.session_state["role"] = "super_admin"
