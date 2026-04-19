@@ -81,15 +81,33 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- Session Persistence Logic ---
+def save_session(role, comp_id=None, student_id=None):
+    st.query_params["role"] = role
+    if comp_id: st.query_params["comp_id"] = str(comp_id)
+    if student_id: st.query_params["student_id"] = str(student_id)
+
+def clear_session():
+    st.query_params.clear()
+    for key in ["role", "comp_id", "student_id"]:
+        if key in st.session_state:
+            del st.session_state[key]
+
 # --- Session State Initialization ---
 if "role" not in st.session_state:
-    st.session_state["role"] = None  # 'admin' or 'student'
-if "student_id" not in st.session_state:
-    st.session_state["student_id"] = None
+    # Try to restore from query params
+    params = st.query_params
+    if "role" in params:
+        st.session_state["role"] = params["role"]
+        if "comp_id" in params: st.session_state["comp_id"] = int(params["comp_id"])
+        if "student_id" in params: st.session_state["student_id"] = int(params["student_id"])
+    else:
+        st.session_state["role"] = None
 
-def get_time_left():
-    limit = db.get_competition_time_limit()
-    start_time = db.get_competition_start_time()
+def get_time_left(comp):
+    if not comp: return 0
+    limit = comp['time_limit']
+    start_time = comp['start_time']
     if not start_time:
         return limit
     elapsed = time.time() - start_time
@@ -101,375 +119,301 @@ def format_time(seconds):
     s = int(seconds % 60)
     return f"{m:02d}:{s:02d}"
 
-# --- Routing ---
+# --- Pages ---
+
+def super_admin_page():
+    st.title("🔑 Asosiy Boshqaruv Paneli (Super Admin)")
+    
+    if st.button("⬅️ Chiqish"):
+        clear_session()
+        st.rerun()
+
+    tab1, tab2 = st.tabs(["🎮 Musobaqalar", "➕ Yangi Musobaqa"])
+    
+    with tab1:
+        comps = db.get_all_competitions()
+        if not comps:
+            st.info("Hozircha musobaqalar yo'q.")
+        else:
+            for c in comps:
+                with st.expander(f"📍 {c['name']} (Kod: {c['code']}) - Holat: {c['status']}"):
+                    col1, col2 = st.columns([3, 1])
+                    col1.write(f"**Admin Paroli:** `{c['admin_password']}`")
+                    col1.write(f"**Vaqt Limiti:** {c['time_limit'] // 60} daqiqa")
+                    
+                    if col2.button("🗑️ O'chirish", key=f"del_comp_{c['id']}"):
+                        db.delete_competition(c['id'])
+                        st.success("Musobaqa o'chirildi!")
+                        st.rerun()
+                    
+                    if col2.button("👁️ Admin panelga kirish", key=f"go_admin_{c['id']}"):
+                        st.session_state["role"] = "admin"
+                        st.session_state["comp_id"] = c['id']
+                        save_session("admin", comp_id=c['id'])
+                        st.rerun()
+
+    with tab2:
+        with st.form("new_comp_form"):
+            name = st.text_input("Musobaqa nomi (masalan: Matematika 9-sinf)")
+            code = st.text_input("4 xonali kod", max_chars=4)
+            admin_pass = st.text_input("Admin paroli")
+            time_limit = st.number_input("Vaqt limiti (daqiqa)", min_value=1, value=30)
+            
+            if st.form_submit_button("Yaratish"):
+                if name and code and admin_pass:
+                    if len(code) != 4:
+                        st.error("Kod 4 xonali bo'lishi kerak!")
+                    else:
+                        res = db.create_competition(name, code, admin_pass, time_limit)
+                        if res:
+                            st.success(f"Musobaqa yaratildi! Kod: {code}")
+                            st.rerun()
+                        else:
+                            st.error("Bu kod band yoki xato yuz berdi.")
+                else:
+                    st.error("Barcha maydonlarni to'ldiring!")
+
 def login_page():
     st.markdown("<h1 class='main-header'>Intellektual Bellashuv Platformasi</h1>", unsafe_allow_html=True)
     
+    if "temp_comp" not in st.session_state:
+        st.session_state["temp_comp"] = None
+
     col1, col2, col3 = st.columns([1, 2, 1])
+    
     with col2:
-        tab1, tab2 = st.tabs(["🎓 O'quvchi", "🛡️ Admin"])
-        
-        with tab1:
-            st.subheader("Musobaqaga qo'shilish")
-            first_name = st.text_input("Ism")
-            last_name = st.text_input("Familiya")
-            if st.button("Kirish"):
-                if first_name and last_name:
-                    student_id = db.add_student(first_name, last_name)
-                    st.session_state["role"] = "student"
-                    st.session_state["student_id"] = student_id
+        if not st.session_state["temp_comp"]:
+            st.subheader("Musobaqa kodini kiriting")
+            comp_code = st.text_input("Imtihon kodi (4 xonali)", max_chars=4)
+            if st.button("Davom etish"):
+                if comp_code == "7777": # Hardcoded Super Admin code
+                    st.session_state["role"] = "super_admin"
+                    save_session("super_admin")
+                    st.rerun()
+                
+                comp = db.get_competition_by_code(comp_code)
+                if comp:
+                    st.session_state["temp_comp"] = comp
                     st.rerun()
                 else:
-                    st.error("Iltimos ism va familiyangizni to'liq kiriting.")
-                    
-        with tab2:
-            st.subheader("Admin paneli")
-            password = st.text_input("Parol", type="password")
-            if st.button("Adminga kirish"):
-                if password == "admin123":
-                    st.session_state["role"] = "admin"
-                    st.rerun()
-                else:
-                    st.error("Noto'g'ri parol.")
+                    st.error("Noto'g'ri kod!")
+        else:
+            comp = st.session_state["temp_comp"]
+            st.info(f"Musobaqa: **{comp['name']}**")
+            
+            tab1, tab2 = st.tabs(["🎓 O'quvchi", "🛡️ Admin"])
+            
+            with tab1:
+                st.subheader("O'quvchi kirishi")
+                f_name = st.text_input("Ism")
+                l_name = st.text_input("Familiya")
+                pwd = st.text_input("Parol", type="password", help="Yangi bo'lsangiz, parol o'ylab toping. Eski bo'lsangiz, o'sha parolni yozing.")
+                
+                if st.button("Kirish"):
+                    if f_name and l_name and pwd:
+                        # Check if student exists
+                        student = db.get_student_by_login(comp['id'], f_name, l_name, pwd)
+                        if student:
+                            st.session_state["role"] = "student"
+                            st.session_state["student_id"] = student['id']
+                            st.session_state["comp_id"] = comp['id']
+                            save_session("student", comp_id=comp['id'], student_id=student['id'])
+                            st.rerun()
+                        else:
+                            # Try to register
+                            try:
+                                student_id = db.add_student(comp['id'], f_name, l_name, pwd)
+                                st.session_state["role"] = "student"
+                                st.session_state["student_id"] = student_id
+                                st.session_state["comp_id"] = comp['id']
+                                save_session("student", comp_id=comp['id'], student_id=student_id)
+                                st.rerun()
+                            except:
+                                st.error("Xato yuz berdi. Balki parol noto'g'ridir?")
+                    else:
+                        st.error("Ma'lumotlarni to'ldiring!")
+            
+            with tab2:
+                st.subheader("Admin kirishi")
+                admin_pwd = st.text_input("Admin paroli", type="password")
+                if st.button("Adminga kirish"):
+                    if admin_pwd == comp['admin_password']:
+                        st.session_state["role"] = "admin"
+                        st.session_state["comp_id"] = comp['id']
+                        save_session("admin", comp_id=comp['id'])
+                        st.rerun()
+                    else:
+                        st.error("Noto'g'ri parol!")
+            
+            if st.button("⬅️ Orqaga"):
+                st.session_state["temp_comp"] = None
+                st.rerun()
 
 def admin_page():
-    # Auto-refresh every 3 seconds to keep leaderboard updated
+    comp_id = st.session_state.get("comp_id")
+    comp = db.get_competition_by_id(comp_id)
+    if not comp:
+        clear_session()
+        st.rerun()
+
     st_autorefresh(interval=3000, key="admin_refresh")
+    st.title(f"🛡️ Admin: {comp['name']}")
     
-    st.title("🛡️ Admin Dashboard")
+    tab1, tab2 = st.tabs(["📊 Jonli Reyting", "📝 Savollar"])
     
-    tab1, tab2 = st.tabs(["📊 Jonli Reyting va Boshqaruv", "📝 Savollarni Boshqarish"])
-    
-    questions_db = db.get_all_questions()
+    questions_db = db.get_all_questions(comp_id)
     total_q = len(questions_db)
     
     with tab1:
         col1, col2 = st.columns([2, 1])
-        
         with col1:
             st.markdown("<h3 class='leaderboard-header'>Jonli Reyting</h3>", unsafe_allow_html=True)
-            students = db.get_all_students()
+            students = db.get_all_students(comp_id)
             if students:
                 df = pd.DataFrame(students)
                 df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
-                
                 ranks = []
                 for i in range(len(df)):
                     rank = i + 1
-                    if rank == 1:
-                        ranks.append("👑 1")
-                    elif rank == 2:
-                        ranks.append("👑 2")
-                    elif rank == 3:
-                        ranks.append("👑 3")
-                    else:
-                        ranks.append(str(rank))
+                    if rank == 1: ranks.append("👑 1")
+                    elif rank == 2: ranks.append("👑 2")
+                    elif rank == 3: ranks.append("👑 3")
+                    else: ranks.append(str(rank))
                 df["O'rin"] = ranks
-                
                 df = df[["O'rin", 'first_name', 'last_name', 'score', 'Progress']]
                 df.columns = ["O'rin", "Ism", "Familiya", "Ball", "Natija"]
-                # Convert progress to "X/total_q"
                 df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{total_q}")
-                
                 st.dataframe(df, use_container_width=True, hide_index=True)
-                
-                # CSV Export
-                csv = df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="📥 Natijalarni yuklab olish (CSV)",
-                    data=csv,
-                    file_name='natijalar.csv',
-                    mime='text/csv',
-                )
             else:
                 st.info("Hali hech kim kirmadi.")
                 
         with col2:
             st.subheader("Boshqaruv")
+            status = comp['status']
             
-            is_started = db.is_competition_started()
-            
-            # Time limit setting
-            current_limit_minutes = db.get_competition_time_limit() // 60
-            new_limit = st.number_input("⏳ O'yin vaqti (daqiqa):", min_value=1, max_value=300, value=current_limit_minutes, disabled=is_started)
-            
-            if new_limit != current_limit_minutes and not is_started:
-                db.set_competition_time_limit(new_limit * 60)
-                st.success("Vaqt o'zgartirildi!")
-                time.sleep(0.5)
-                st.rerun()
-                
-            if not is_started:
-                st.warning("Musobaqa to'xtatilgan/kutilmoqda.")
+            if status == 'pending':
                 if st.button("🟢 Musobaqani boshlash"):
-                    db.set_competition_started(True)
+                    db.update_competition_status(comp_id, 'started', start_time=time.time())
                     st.rerun()
-            else:
-                time_left = get_time_left()
+            elif status == 'started':
+                time_left = get_time_left(comp)
                 if time_left > 0:
                     st.success("Musobaqa qizg'in pallada.")
-                    import streamlit.components.v1 as components
-                    html_code = f"""
-                    <div style="font-family: sans-serif; padding: 10px; background: #262730; color: white; border-radius: 8px; text-align: center; font-size: 1.2rem; font-weight: bold; border: 1px solid #38bdf8;">
-                        ⏳ <span id="admin_clock">{format_time(time_left)}</span>
-                    </div>
-                    <script>
-                    var timeLeft = {int(time_left)};
-                    var clock = document.getElementById('admin_clock');
-                    var timerId = setInterval(function() {{
-                        timeLeft--;
-                        if (timeLeft <= 0) {{
-                            clearInterval(timerId);
-                            clock.innerHTML = "Vaqt tugadi!";
-                            clock.style.color = "#ef4444";
-                            window.parent.location.reload();
-                        }} else {{
-                            var m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-                            var s = Math.floor(timeLeft % 60).toString().padStart(2, '0');
-                            clock.innerHTML = m + ":" + s;
-                        }}
-                    }}, 1000);
-                    </script>
-                    """
-                    components.html(html_code, height=60)
+                    st.metric("Qolgan vaqt", format_time(time_left))
+                    if st.button("🛑 To'xtatish"):
+                        db.update_competition_status(comp_id, 'finished')
+                        st.rerun()
                 else:
-                    st.error("Musobaqa vaqti tugadi.")
-                    
-                if st.button("🛑 To'xtatish"):
-                    db.set_competition_started(False)
+                    db.update_competition_status(comp_id, 'finished')
                     st.rerun()
-                    
+            else:
+                st.error("Musobaqa tugadi.")
+                if st.button("🔄 Qayta boshlash (Natijalarni o'chirish)"):
+                    db.reset_scores(comp_id)
+                    st.rerun()
+
             st.markdown("---")
-            if st.button("🔄 Natijalarni nollash (O'quvchilar qoladi)"):
-                st.session_state['confirm_reset_scores'] = True
-                
-            if st.session_state.get('confirm_reset_scores', False):
-                st.warning("Barcha natijalar va vaqt nollanadi. Davom etamizmi?")
-                c1, c2 = st.columns(2)
-                if c1.button("Ha, nollash", key="btn_yes_scores"):
-                    db.reset_scores()
-                    st.session_state['confirm_reset_scores'] = False
-                    st.rerun()
-                if c2.button("Bekor qilish", key="btn_no_scores"):
-                    st.session_state['confirm_reset_scores'] = False
-                    st.rerun()
-                    
-            if st.button("⚠️ Barcha o'quvchilarni o'chirish"):
-                st.session_state['confirm_reset'] = True
-                
-            if st.session_state.get('confirm_reset', False):
-                st.warning("Haqiqatan ham hamma o'quvchilarni tizimdan o'chirmoqchimisiz?")
-                c1, c2 = st.columns(2)
-                if c1.button("Ha, o'chirish", key="btn_yes_all"):
-                    db.reset_db()
-                    st.session_state['confirm_reset'] = False
-                    st.rerun()
-                if c2.button("Bekor qilish", key="btn_no_all"):
-                    st.session_state['confirm_reset'] = False
-                    st.rerun()
-                
-            st.markdown("---")
-            if st.button("Tizimdan chiqish"):
-                st.session_state["role"] = None
+            if st.button("🚪 Tizimdan chiqish"):
+                clear_session()
                 st.rerun()
 
     with tab2:
-        st.subheader("Barcha savollar")
-        
-        if not questions_db:
-            st.info("Hozircha savollar yo'q.")
-        
+        st.subheader("Savollar")
         for idx, q in enumerate(questions_db):
             with st.container():
                 c1, c2 = st.columns([5, 1])
                 c1.markdown(f"**{idx+1}. {q['topic']}** (Ball: {q['score']})")
                 c1.markdown(f"{q['question']}")
-                c1.markdown(f"*Javoblar:* `{q['answer']}`")
-                
-                if c2.button("🗑️ O'chirish", key=f"del_{q['id']}"):
+                if c2.button("🗑️", key=f"del_{q['id']}"):
                     db.delete_question(q['id'])
-                    st.success("Savol o'chirildi!")
                     st.rerun()
             st.markdown("---")
-            
-        with st.expander("➕ Yangi savol qo'shish", expanded=False):
-            with st.form("add_question_form"):
-                new_topic = st.text_input("Mavzu")
-                new_q = st.text_area("Savol matni (Formulalarni $ $ belgisi ichiga yozishingiz mumkin)")
-                new_ans = st.text_input("To'g'ri javob (bir nechta variant bo'lsa | bilan ajrating)")
-                new_score = st.number_input("Ball", min_value=1, value=10)
-                
-                if st.form_submit_button("Qo'shish"):
-                    if new_topic and new_q and new_ans:
-                        db.add_question(new_topic, new_q, new_ans, new_score)
-                        st.success("Yangi savol qo'shildi!")
+        
+        with st.expander("➕ Yangi savol qo'shish"):
+            with st.form("add_q"):
+                t = st.text_input("Mavzu")
+                q_text = st.text_area("Savol")
+                a = st.text_input("Javob")
+                s = st.number_input("Ball", min_value=1, value=10)
+                if st.form_submit_button("Saqlash"):
+                    if t and q_text and a:
+                        db.add_question(comp_id, t, q_text, a, s)
                         st.rerun()
-                    else:
-                        st.error("Barcha maydonlarni to'ldiring!")
 
 def student_page():
-    student_id = st.session_state["student_id"]
+    student_id = st.session_state.get("student_id")
+    comp_id = st.session_state.get("comp_id")
     student = db.get_student(student_id)
+    comp = db.get_competition_by_id(comp_id)
     
-    if not student:
-        st.session_state["role"] = None
+    if not student or not comp:
+        clear_session()
         st.rerun()
         
-    is_started = db.is_competition_started()
-    is_finished = db.is_competition_finished()
     solved = student.get("solved_questions", [])
-    
-    questions_db = db.get_all_questions()
+    questions_db = db.get_all_questions(comp_id)
     total_q = len(questions_db)
     
-    # Calculate rank
-    students = db.get_all_students()
-    my_rank = "-"
-    for i, s in enumerate(students):
-        if s['id'] == student_id:
-            my_rank = i + 1
-            break
-            
-    rank_str = f"👑 {my_rank}" if my_rank in [1, 2, 3] else str(my_rank)
-    
     st.sidebar.title(f"👤 {student['first_name']} {student['last_name']}")
-    st.sidebar.markdown(f"### 🏆 O'rningiz: {rank_str}")
-    st.sidebar.metric("Sizning ballingiz", student["score"])
-    
-    progress_val = len(solved) / total_q if total_q > 0 else 0
-    st.sidebar.progress(progress_val)
+    st.sidebar.metric("Ballingiz", student["score"])
     st.sidebar.write(f"Natija: {len(solved)}/{total_q}")
     
-    if is_started and not is_finished:
-        time_left = get_time_left()
-        st.sidebar.markdown("---")
+    if comp['status'] == 'started':
+        time_left = get_time_left(comp)
         if time_left > 0:
-            import streamlit.components.v1 as components
-            html_code = f"""
-            <div style="font-family: sans-serif; padding: 10px; background: #262730; color: white; border-radius: 8px; text-align: center; font-size: 1.2rem; font-weight: bold; border: 1px solid #38bdf8;">
-                ⏳ <span id="clock">{format_time(time_left)}</span>
-            </div>
-            <script>
-            var timeLeft = {int(time_left)};
-            var clock = document.getElementById('clock');
-            var timerId = setInterval(function() {{
-                timeLeft--;
-                if (timeLeft <= 0) {{
-                    clearInterval(timerId);
-                    clock.innerHTML = "Vaqt tugadi!";
-                    clock.style.color = "#ef4444";
-                    // Reload parent page to trigger Streamlit's time up screen
-                    window.parent.location.reload();
-                }} else {{
-                    var m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-                    var s = Math.floor(timeLeft % 60).toString().padStart(2, '0');
-                    clock.innerHTML = m + ":" + s;
-                }}
-            }}, 1000);
-            </script>
-            """
-            st.sidebar.markdown("---")
-            with st.sidebar:
-                components.html(html_code, height=60)
-        else:
-            st.sidebar.error("Vaqt tugadi!")
-    elif is_finished:
-        st.sidebar.markdown("---")
-        st.sidebar.error("Musobaqa yakunlandi!")
-    
-    if st.sidebar.button("Chiqish"):
-        st.session_state["role"] = None
-        st.rerun()
-        
-    if is_finished or (is_started and get_time_left() <= 0):
-        # Completed / Time up
-        st_autorefresh(interval=5000, key="student_completed_refresh")
-        if len(solved) == total_q and total_q > 0:
-            st.balloons()
-            st.markdown("<h2 style='text-align: center; color: #10B981;'>🏆 Barcha savollarni yakunladingiz!</h2>", unsafe_allow_html=True)
-        elif is_finished and get_time_left() > 0:
-            st.markdown("<h2 style='text-align: center; color: #EF4444;'>🛑 Musobaqa to'xtatildi!</h2>", unsafe_allow_html=True)
-        else:
-            st.markdown("<h2 style='text-align: center; color: #EF4444;'>⏰ Vaqt tugadi!</h2>", unsafe_allow_html=True)
-        st.write(f"### Yakuniy ballingiz: {student['score']}")
-        
-        st.markdown("---")
-        st.markdown("<h3 class='leaderboard-header'>Jonli Reyting</h3>", unsafe_allow_html=True)
-        
-        if students:
-            df = pd.DataFrame(students)
-            df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
+            st.sidebar.metric("⏳ Qolgan vaqt", format_time(time_left))
+            st_autorefresh(interval=5000, key="st_active")
             
-            ranks = []
-            for i in range(len(df)):
-                rank = i + 1
-                if rank == 1:
-                    ranks.append("👑 1")
-                elif rank == 2:
-                    ranks.append("👑 2")
-                elif rank == 3:
-                    ranks.append("👑 3")
-                else:
-                    ranks.append(str(rank))
-            df["O'rin"] = ranks
-            
-            df = df[["O'rin", 'first_name', 'last_name', 'score', 'Progress']]
-            df.columns = ["O'rin", "Ism", "Familiya", "Ball", "Natija"]
-            df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{total_q}")
-            st.dataframe(df, use_container_width=True, hide_index=True)
-            
-    elif is_started:
-        # Show all questions
-        st_autorefresh(interval=5000, key="student_active_refresh")
-        time_left = get_time_left()
-        st.markdown("## Savollar", unsafe_allow_html=True)
-        st.info("💡 Istalgan savoldan boshlashingiz mumkin. Xato javob uchun ball olinmaydi, qayta urinib ko'rish cheklanmagan.")
-        
-        for idx, q in enumerate(questions_db):
-            q_id = q['id']
-            is_solved = q_id in solved
-            icon = "✅" if is_solved else "📝"
-            
-            with st.expander(f"{icon} {idx+1}-savol", expanded=False):
-                st.markdown(f"**Mavzu:** {q['topic']} (Ball: {q['score']})")
-                # Using st.markdown allows LaTeX rendering if wrapped in $
-                st.markdown(q["question"])
-                
-                if is_solved:
-                    st.success(f"Siz bu savolga to'g'ri javob bergansiz! 🎉 (+{q['score']} ball)")
-                else:
-                    with st.form(key=f"q_form_{q_id}"):
-                        choice = st.text_input("Javobingizni kiriting:", key=f"ans_input_{q_id}")
-                        submitted = st.form_submit_button("Javobni tekshirish")
-                        
-                        if submitted:
-                            if not choice.strip():
-                                st.warning("Iltimos, avval javobingizni kiriting.")
-                            else:
-                                user_ans = choice.replace(" ", "").replace(",", ".").lower()
-                                correct_answers = [ans.replace(" ", "").replace(",", ".").lower() for ans in str(q["answer"]).split("|")]
-                                
-                                if user_ans in correct_answers:
+            st.markdown("## Savollar")
+            for idx, q in enumerate(questions_db):
+                q_id = q['id']
+                is_solved = q_id in solved
+                icon = "✅" if is_solved else "📝"
+                with st.expander(f"{icon} {idx+1}-savol"):
+                    st.markdown(q["question"])
+                    if is_solved:
+                        st.success(f"To'g'ri! (+{q['score']} ball)")
+                    else:
+                        with st.form(key=f"f_{q_id}"):
+                            ans = st.text_input("Javob:")
+                            if st.form_submit_button("Tekshirish"):
+                                user_ans = ans.replace(" ", "").replace(",", ".").lower()
+                                correct = [a.replace(" ", "").replace(",", ".").lower() for a in str(q["answer"]).split("|")]
+                                if user_ans in correct:
                                     st.balloons()
-                                    st.success(f"To'g'ri! 🎉 +{q['score']} ball")
                                     new_score = student["score"] + q['score']
                                     solved.append(q_id)
                                     db.update_score(student_id, new_score, solved)
                                     time.sleep(1)
                                     st.rerun()
                                 else:
-                                    st.error(f"Xato. Qayta urinib ko'ring! ❌")
-                                    
+                                    st.error("Xato!")
+        else:
+            st.error("Vaqt tugadi!")
+    elif comp['status'] == 'finished':
+        st.header("🏁 Musobaqa yakunlandi")
+        st.write(f"Sizning yakuniy ballingiz: **{student['score']}**")
+        
+        # Show Leaderboard
+        students = db.get_all_students(comp_id)
+        df = pd.DataFrame(students)
+        df['Natija'] = df['solved_questions'].apply(lambda x: f"{len(x)}/{total_q}")
+        df = df[["first_name", "last_name", "score", "Natija"]]
+        df.columns = ["Ism", "Familiya", "Ball", "Natija"]
+        st.dataframe(df, use_container_width=True, hide_index=True)
     else:
-        # Waiting room
-        st_autorefresh(interval=2000, key="student_waiting_refresh")
-        st.markdown("<h2 style='text-align: center; margin-top: 10vh;'>⏳ Musobaqa boshlanishini kuting...</h2>", unsafe_allow_html=True)
-        st.info("Tayyor turing! Admin musobaqani boshlaganidan so'ng savollar ekranda paydo bo'ladi.")
+        st_autorefresh(interval=3000, key="st_wait")
+        st.info("⏳ Musobaqa boshlanishini kuting...")
 
-# --- Main App Logic ---
+    if st.sidebar.button("Chiqish"):
+        clear_session()
+        st.rerun()
+
+# --- Main Logic ---
 role = st.session_state.get("role")
-
-if role == "admin":
+if role == "super_admin":
+    super_admin_page()
+elif role == "admin":
     admin_page()
 elif role == "student":
     student_page()
