@@ -256,7 +256,7 @@ def admin_page():
         clear_session()
         st.rerun()
 
-    st_autorefresh(interval=3000, key="admin_refresh")
+    st_autorefresh(interval=1000, key="admin_refresh")
     st.title(f"🛡️ Admin: {comp['name']}")
     
     tab1, tab2 = st.tabs(["📊 Jonli Reyting", "📝 Savollar"])
@@ -371,7 +371,7 @@ def student_page():
         time_left = get_time_left(comp)
         if time_left > 0:
             st.sidebar.metric("⏳ Qolgan vaqt", format_time(time_left))
-            st_autorefresh(interval=5000, key="st_active")
+            st_autorefresh(interval=1000, key="st_active")
             
             st.markdown("## Savollar")
             for idx, q in enumerate(questions_db):
@@ -411,7 +411,7 @@ def student_page():
         df.columns = ["Ism", "Familiya", "Ball", "Natija"]
         st.dataframe(df, use_container_width=True, hide_index=True)
     else:
-        st_autorefresh(interval=3000, key="st_wait")
+        st_autorefresh(interval=1000, key="st_wait")
         st.info("⏳ Musobaqa boshlanishini kuting...")
 
     if st.sidebar.button("Chiqish"):
