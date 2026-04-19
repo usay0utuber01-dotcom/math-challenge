@@ -77,8 +77,13 @@ st.markdown("""
     }
     .stButton > button:hover {
         transform: scale(1.02);
-        box-shadow: 0 10px 20px rgba(147, 51, 234, 0.3);
+        box-shadow: 0 0 30px rgba(147, 51, 234, 0.6), 0 0 10px rgba(79, 70, 229, 0.4);
         color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .stButton > button:active {
+        transform: scale(0.98);
+        box-shadow: 0 0 40px rgba(147, 51, 234, 0.8);
     }
 
     /* Question Cards */
@@ -217,14 +222,14 @@ def login_page():
     if "temp_comp" not in st.session_state:
         st.session_state["temp_comp"] = None
 
-    col1, col2, col3 = st.columns([1, 1.8, 1]) # Slightly wider for better fit
+    col1, col2, col3 = st.columns([1, 1.8, 1])
     
     with col2:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         if not st.session_state["temp_comp"]:
-            st.markdown('<div class="glass-card">', unsafe_allow_html=True)
             st.subheader("Musobaqa kodini kiriting")
             comp_code = st.text_input("Imtihon kodi", key="main_code_input", placeholder="Masalan: 1234", label_visibility="collapsed")
-            st.markdown("<br>", unsafe_allow_html=True) # Small spacing
+            st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Davom etish"):
                 if comp_code == "502500560":
                     st.session_state["role"] = "super_admin"
