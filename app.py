@@ -78,6 +78,30 @@ st.markdown("""
             font-size: 1rem !important;
         }
     }
+
+    /* Contact Footer Style */
+    .contact-footer {
+        text-align: center;
+        margin-top: 5rem;
+        padding: 20px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        color: #94a3b8;
+        font-size: 0.9rem;
+        animation: fadeIn 2s ease-in;
+    }
+    .contact-footer a {
+        color: #38bdf8;
+        text-decoration: none;
+        font-weight: bold;
+        transition: color 0.3s;
+    }
+    .contact-footer a:hover {
+        color: #818cf8;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -248,6 +272,16 @@ def login_page():
             if st.button("⬅️ Orqaga"):
                 st.session_state["temp_comp"] = None
                 st.rerun()
+
+    # Beautiful Contact Footer
+    st.markdown("""
+        <div class="contact-footer">
+            <p>Savollar yoki takliflar bo'yicha bog'lanish: 
+               <br>
+               <a href="tel:+998502500560">📞 +998 50 250 05 60</a>
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
 
 def admin_page():
     comp_id = st.session_state.get("comp_id")
