@@ -256,7 +256,7 @@ def admin_page():
         clear_session()
         st.rerun()
 
-    st_autorefresh(interval=1000, key="admin_refresh")
+    st_autorefresh(interval=5000, key="admin_refresh")
     st.title(f"🛡️ Admin: {comp['name']}")
     
     tab1, tab2 = st.tabs(["📊 Jonli Reyting", "📝 Savollar"])
@@ -308,7 +308,32 @@ def admin_page():
                 time_left = get_time_left(comp)
                 if time_left > 0:
                     st.success("Musobaqa qizg'in pallada.")
-                    st.metric("Qolgan vaqt", format_time(time_left))
+                    # Smooth JS Timer for Admin
+                    import streamlit.components.v1 as components
+                    end_ts = time.time() + time_left
+                    html_timer = f"""
+                    <div id="timer_box" style="font-family: sans-serif; padding: 10px; background: #1e293b; color: #38bdf8; border-radius: 8px; text-align: center; font-size: 1.5rem; font-weight: bold; border: 1px solid #38bdf8;">
+                        ⏳ <span id="admin_timer">--:--</span>
+                    </div>
+                    <script>
+                    var endTime = {end_ts} * 1000;
+                    function updateTimer() {{
+                        var now = new Date().getTime();
+                        var diff = endTime - now;
+                        if (diff <= 0) {{
+                            document.getElementById('admin_timer').innerHTML = "00:00";
+                            return;
+                        }}
+                        var m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+                        var s = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+                        document.getElementById('admin_timer').innerHTML = m + ":" + s;
+                    }}
+                    setInterval(updateTimer, 1000);
+                    updateTimer();
+                    </script>
+                    """
+                    components.html(html_timer, height=70)
+                    
                     if st.button("🛑 To'xtatish"):
                         db.update_competition_status(comp_id, 'finished')
                         st.rerun()
@@ -370,8 +395,35 @@ def student_page():
     if comp['status'] == 'started':
         time_left = get_time_left(comp)
         if time_left > 0:
-            st.sidebar.metric("⏳ Qolgan vaqt", format_time(time_left))
-            st_autorefresh(interval=1000, key="st_active")
+            st_autorefresh(interval=5000, key="st_active")
+            
+            # Smooth JS Timer for Student Sidebar
+            import streamlit.components.v1 as components
+            end_ts = time.time() + time_left
+            html_sidebar_timer = f"""
+            <div style="font-family: sans-serif; padding: 10px; background: #0f172a; color: #f43f5e; border-radius: 8px; text-align: center; font-size: 1.2rem; font-weight: bold; border: 1px solid #f43f5e; margin-bottom: 10px;">
+                <span id="st_timer">--:--</span>
+            </div>
+            <script>
+            var endTime = {end_ts} * 1000;
+            function updateStTimer() {{
+                var now = new Date().getTime();
+                var diff = endTime - now;
+                if (diff <= 0) {{
+                    document.getElementById('st_timer').innerHTML = "Vaqt tugadi!";
+                    return;
+                }}
+                var m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+                var s = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+                document.getElementById('st_timer').innerHTML = "⏳ " + m + ":" + s;
+            }}
+            setInterval(updateStTimer, 1000);
+            updateStTimer();
+            </script>
+            """
+            st.sidebar.markdown("---")
+            with st.sidebar:
+                components.html(html_sidebar_timer, height=60)
             
             st.markdown("## Savollar")
             for idx, q in enumerate(questions_db):
@@ -411,7 +463,7 @@ def student_page():
         df.columns = ["Ism", "Familiya", "Ball", "Natija"]
         st.dataframe(df, use_container_width=True, hide_index=True)
     else:
-        st_autorefresh(interval=1000, key="st_wait")
+        st_autorefresh(interval=5000, key="st_wait")
         st.info("⏳ Musobaqa boshlanishini kuting...")
 
     if st.sidebar.button("Chiqish"):
