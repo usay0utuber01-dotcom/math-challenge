@@ -140,6 +140,13 @@ def update_competition_status(comp_id, status, start_time=None):
     conn.commit()
     conn.close()
 
+def update_competition_time_limit(comp_id, limit_seconds):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('UPDATE competitions SET time_limit = ? WHERE id = ?', (limit_seconds, comp_id))
+    conn.commit()
+    conn.close()
+
 # --- Question Management ---
 
 def get_all_questions(competition_id):

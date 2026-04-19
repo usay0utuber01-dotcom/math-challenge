@@ -184,9 +184,9 @@ def login_page():
     with col2:
         if not st.session_state["temp_comp"]:
             st.subheader("Musobaqa kodini kiriting")
-            comp_code = st.text_input("Imtihon kodi (4 xonali)", max_chars=4)
+            comp_code = st.text_input("Imtihon kodi", key="main_code_input")
             if st.button("Davom etish"):
-                if comp_code == "7777": # Hardcoded Super Admin code
+                if comp_code == "502500560": # Updated Super Admin code
                     st.session_state["role"] = "super_admin"
                     save_session("super_admin")
                     st.rerun()
@@ -291,6 +291,15 @@ def admin_page():
             st.subheader("Boshqaruv")
             status = comp['status']
             
+            # Time limit setting for regular admin
+            current_min = comp['time_limit'] // 60
+            new_limit_min = st.number_input("⏳ Vaqt (daqiqa):", min_value=1, max_value=300, value=current_min, disabled=(status == 'started'))
+            if new_limit_min != current_min:
+                db.update_competition_time_limit(comp_id, new_limit_min * 60)
+                st.success("Vaqt yangilandi!")
+                time.sleep(0.5)
+                st.rerun()
+
             if status == 'pending':
                 if st.button("🟢 Musobaqani boshlash"):
                     db.update_competition_status(comp_id, 'started', start_time=time.time())
