@@ -8,7 +8,7 @@ import db
 db.init_db()
 
 # --- Page Config ---
-st.set_page_config(page_title="Math Challenge", page_icon="🧮", layout="wide")
+st.set_page_config(page_title="Intellektual Bellashuv", page_icon="🎓", layout="wide")
 
 # --- Custom CSS ---
 st.markdown("""
@@ -103,7 +103,7 @@ def format_time(seconds):
 
 # --- Routing ---
 def login_page():
-    st.markdown("<h1 class='main-header'>Math Challenge Platform</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='main-header'>Intellektual Bellashuv Platformasi</h1>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -295,7 +295,7 @@ def admin_page():
         with st.expander("➕ Yangi savol qo'shish", expanded=False):
             with st.form("add_question_form"):
                 new_topic = st.text_input("Mavzu")
-                new_q = st.text_area("Savol matni (Matematik formulalarni $ $ belgisi ichiga yozishingiz mumkin)")
+                new_q = st.text_area("Savol matni (Formulalarni $ $ belgisi ichiga yozishingiz mumkin)")
                 new_ans = st.text_input("To'g'ri javob (bir nechta variant bo'lsa | bilan ajrating)")
                 new_score = st.number_input("Ball", min_value=1, value=10)
                 
@@ -420,6 +420,7 @@ def student_page():
             
     elif is_started:
         # Show all questions
+        st_autorefresh(interval=5000, key="student_active_refresh")
         time_left = get_time_left()
         st.markdown("## Savollar", unsafe_allow_html=True)
         st.info("💡 Istalgan savoldan boshlashingiz mumkin. Xato javob uchun ball olinmaydi, qayta urinib ko'rish cheklanmagan.")
@@ -438,7 +439,7 @@ def student_page():
                     st.success(f"Siz bu savolga to'g'ri javob bergansiz! 🎉 (+{q['score']} ball)")
                 else:
                     with st.form(key=f"q_form_{q_id}"):
-                        choice = st.text_input("Javobingizni kiriting:")
+                        choice = st.text_input("Javobingizni kiriting:", key=f"ans_input_{q_id}")
                         submitted = st.form_submit_button("Javobni tekshirish")
                         
                         if submitted:
