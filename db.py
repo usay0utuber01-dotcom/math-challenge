@@ -44,13 +44,15 @@ def init_db():
     
     # Initialize competition state if not exists
     c.execute('INSERT OR IGNORE INTO app_state (key, value) VALUES ("competition_started", "false")')
+    c.execute('INSERT OR IGNORE INTO app_state (key, value) VALUES ("competition_finished", "false")')
     
     # Seed questions if table is empty
     c.execute('SELECT COUNT(*) FROM questions')
     if c.fetchone()[0] == 0:
-        for q in QUESTIONS:
+        for i, q in enumerate(QUESTIONS):
+            score = (i + 1) * 10
             c.execute('INSERT INTO questions (topic, question, answer, score) VALUES (?, ?, ?, ?)',
-                      (q['topic'], q['question'], q['answer'], 10))
+                      (q['topic'], q['question'], q['answer'], score))
                       
     conn.commit()
     conn.close()
@@ -137,6 +139,16 @@ def is_competition_started():
         return row['value'] == 'true'
     return False
 
+def is_competition_finished():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('SELECT value FROM app_state WHERE key = "competition_finished"')
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return row['value'] == 'true'
+    return False
+
 def get_competition_time_limit():
     conn = get_connection()
     c = conn.cursor()
@@ -178,9 +190,11 @@ def set_competition_started(started: bool):
     
     if started:
         c.execute('INSERT OR REPLACE INTO app_state (key, value) VALUES ("competition_start_time", ?)', (str(time.time()),))
+        c.execute('INSERT OR REPLACE INTO app_state (key, value) VALUES ("competition_finished", "false")')
     else:
         # Reset start time if stopped
         c.execute('DELETE FROM app_state WHERE key = "competition_start_time"')
+        c.execute('INSERT OR REPLACE INTO app_state (key, value) VALUES ("competition_finished", "true")')
         
     conn.commit()
     conn.close()
@@ -191,6 +205,7 @@ def reset_db():
     c.execute('DELETE FROM students')
     c.execute('UPDATE app_state SET value = "false" WHERE key = "competition_started"')
     c.execute('DELETE FROM app_state WHERE key = "competition_start_time"')
+    c.execute('UPDATE app_state SET value = "false" WHERE key = "competition_finished"')
     conn.commit()
     conn.close()
 
@@ -200,5 +215,6 @@ def reset_scores():
     c.execute("UPDATE students SET score = 0, solved_questions = '[]'")
     c.execute('UPDATE app_state SET value = "false" WHERE key = "competition_started"')
     c.execute('DELETE FROM app_state WHERE key = "competition_start_time"')
+    c.execute('UPDATE app_state SET value = "false" WHERE key = "competition_finished"')
     conn.commit()
     conn.close()

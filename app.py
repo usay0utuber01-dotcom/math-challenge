@@ -316,6 +316,7 @@ def student_page():
         st.rerun()
         
     is_started = db.is_competition_started()
+    is_finished = db.is_competition_finished()
     solved = student.get("solved_questions", [])
     
     questions_db = db.get_all_questions()
@@ -339,7 +340,7 @@ def student_page():
     st.sidebar.progress(progress_val)
     st.sidebar.write(f"Natija: {len(solved)}/{total_q}")
     
-    if is_started:
+    if is_started and not is_finished:
         time_left = get_time_left()
         st.sidebar.markdown("---")
         if time_left > 0:
@@ -372,92 +373,97 @@ def student_page():
                 components.html(html_code, height=60)
         else:
             st.sidebar.error("Vaqt tugadi!")
+    elif is_finished:
+        st.sidebar.markdown("---")
+        st.sidebar.error("Musobaqa yakunlandi!")
     
     if st.sidebar.button("Chiqish"):
         st.session_state["role"] = None
         st.rerun()
         
-    if not is_started:
+    if is_finished or (is_started and get_time_left() <= 0):
+        # Completed / Time up
+        st_autorefresh(interval=5000, key="student_completed_refresh")
+        if len(solved) == total_q and total_q > 0:
+            st.balloons()
+            st.markdown("<h2 style='text-align: center; color: #10B981;'>🏆 Barcha savollarni yakunladingiz!</h2>", unsafe_allow_html=True)
+        elif is_finished and get_time_left() > 0:
+            st.markdown("<h2 style='text-align: center; color: #EF4444;'>🛑 Musobaqa to'xtatildi!</h2>", unsafe_allow_html=True)
+        else:
+            st.markdown("<h2 style='text-align: center; color: #EF4444;'>⏰ Vaqt tugadi!</h2>", unsafe_allow_html=True)
+        st.write(f"### Yakuniy ballingiz: {student['score']}")
+        
+        st.markdown("---")
+        st.markdown("<h3 class='leaderboard-header'>Jonli Reyting</h3>", unsafe_allow_html=True)
+        
+        if students:
+            df = pd.DataFrame(students)
+            df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
+            
+            ranks = []
+            for i in range(len(df)):
+                rank = i + 1
+                if rank == 1:
+                    ranks.append("👑 1")
+                elif rank == 2:
+                    ranks.append("👑 2")
+                elif rank == 3:
+                    ranks.append("👑 3")
+                else:
+                    ranks.append(str(rank))
+            df["O'rin"] = ranks
+            
+            df = df[["O'rin", 'first_name', 'last_name', 'score', 'Progress']]
+            df.columns = ["O'rin", "Ism", "Familiya", "Ball", "Natija"]
+            df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{total_q}")
+            st.dataframe(df, use_container_width=True, hide_index=True)
+            
+    elif is_started:
+        # Show all questions
+        time_left = get_time_left()
+        st.markdown("## Savollar", unsafe_allow_html=True)
+        st.info("💡 Istalgan savoldan boshlashingiz mumkin. Xato javob uchun ball olinmaydi, qayta urinib ko'rish cheklanmagan.")
+        
+        for idx, q in enumerate(questions_db):
+            q_id = q['id']
+            is_solved = q_id in solved
+            icon = "✅" if is_solved else "📝"
+            
+            with st.expander(f"{icon} {idx+1}-savol", expanded=False):
+                st.markdown(f"**Mavzu:** {q['topic']} (Ball: {q['score']})")
+                # Using st.markdown allows LaTeX rendering if wrapped in $
+                st.markdown(q["question"])
+                
+                if is_solved:
+                    st.success(f"Siz bu savolga to'g'ri javob bergansiz! 🎉 (+{q['score']} ball)")
+                else:
+                    with st.form(key=f"q_form_{q_id}"):
+                        choice = st.text_input("Javobingizni kiriting:")
+                        submitted = st.form_submit_button("Javobni tekshirish")
+                        
+                        if submitted:
+                            if not choice.strip():
+                                st.warning("Iltimos, avval javobingizni kiriting.")
+                            else:
+                                user_ans = choice.replace(" ", "").replace(",", ".").lower()
+                                correct_answers = [ans.replace(" ", "").replace(",", ".").lower() for ans in str(q["answer"]).split("|")]
+                                
+                                if user_ans in correct_answers:
+                                    st.balloons()
+                                    st.success(f"To'g'ri! 🎉 +{q['score']} ball")
+                                    new_score = student["score"] + q['score']
+                                    solved.append(q_id)
+                                    db.update_score(student_id, new_score, solved)
+                                    time.sleep(1)
+                                    st.rerun()
+                                else:
+                                    st.error(f"Xato. Qayta urinib ko'ring! ❌")
+                                    
+    else:
         # Waiting room
         st_autorefresh(interval=2000, key="student_waiting_refresh")
         st.markdown("<h2 style='text-align: center; margin-top: 10vh;'>⏳ Musobaqa boshlanishini kuting...</h2>", unsafe_allow_html=True)
         st.info("Tayyor turing! Admin musobaqani boshlaganidan so'ng savollar ekranda paydo bo'ladi.")
-    else:
-        time_left = get_time_left()
-        
-        if time_left <= 0:
-            # Completed / Time up
-            st_autorefresh(interval=5000, key="student_completed_refresh")
-            if len(solved) == total_q and total_q > 0:
-                st.balloons()
-                st.markdown("<h2 style='text-align: center; color: #10B981;'>🏆 Barcha savollarni yakunladingiz!</h2>", unsafe_allow_html=True)
-            else:
-                st.markdown("<h2 style='text-align: center; color: #EF4444;'>⏰ Vaqt tugadi!</h2>", unsafe_allow_html=True)
-            st.write(f"### Yakuniy ballingiz: {student['score']}")
-            
-            st.markdown("---")
-            st.markdown("<h3 class='leaderboard-header'>Jonli Reyting</h3>", unsafe_allow_html=True)
-            
-            if students:
-                df = pd.DataFrame(students)
-                df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
-                
-                ranks = []
-                for i in range(len(df)):
-                    rank = i + 1
-                    if rank == 1:
-                        ranks.append("👑 1")
-                    elif rank == 2:
-                        ranks.append("👑 2")
-                    elif rank == 3:
-                        ranks.append("👑 3")
-                    else:
-                        ranks.append(str(rank))
-                df["O'rin"] = ranks
-                
-                df = df[["O'rin", 'first_name', 'last_name', 'score', 'Progress']]
-                df.columns = ["O'rin", "Ism", "Familiya", "Ball", "Natija"]
-                df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{total_q}")
-                st.dataframe(df, use_container_width=True, hide_index=True)
-        else:
-            # Show all questions
-            st.markdown("## Savollar", unsafe_allow_html=True)
-            st.info("💡 Istalgan savoldan boshlashingiz mumkin. Xato javob uchun ball olinmaydi, qayta urinib ko'rish cheklanmagan.")
-            
-            for idx, q in enumerate(questions_db):
-                q_id = q['id']
-                is_solved = q_id in solved
-                icon = "✅" if is_solved else "📝"
-                
-                with st.expander(f"{icon} {idx+1}-savol", expanded=False):
-                    st.markdown(f"**Mavzu:** {q['topic']} (Ball: {q['score']})")
-                    # Using st.markdown allows LaTeX rendering if wrapped in $
-                    st.markdown(q["question"])
-                    
-                    if is_solved:
-                        st.success(f"Siz bu savolga to'g'ri javob bergansiz! 🎉 (+{q['score']} ball)")
-                    else:
-                        with st.form(key=f"q_form_{q_id}"):
-                            choice = st.text_input("Javobingizni kiriting:")
-                            submitted = st.form_submit_button("Javobni tekshirish")
-                            
-                            if submitted:
-                                if not choice.strip():
-                                    st.warning("Iltimos, avval javobingizni kiriting.")
-                                else:
-                                    user_ans = choice.replace(" ", "").replace(",", ".").lower()
-                                    correct_answers = [ans.replace(" ", "").replace(",", ".").lower() for ans in str(q["answer"]).split("|")]
-                                    
-                                    if user_ans in correct_answers:
-                                        st.balloons()
-                                        st.success(f"To'g'ri! 🎉 +{q['score']} ball")
-                                        new_score = student["score"] + q['score']
-                                        solved.append(q_id)
-                                        db.update_score(student_id, new_score, solved)
-                                        time.sleep(1)
-                                        st.rerun()
-                                    else:
-                                        st.error(f"Xato. Qayta urinib ko'ring! ❌")
 
 # --- Main App Logic ---
 role = st.session_state.get("role")
