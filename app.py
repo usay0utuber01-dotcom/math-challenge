@@ -98,7 +98,8 @@ st.markdown("""
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         text-align: center;
-        margin-bottom: 3rem;
+        margin-bottom: 1rem; /* Reduced from 3rem */
+        margin-top: -2rem;
     }
 
     /* Badge Style */
@@ -216,13 +217,14 @@ def login_page():
     if "temp_comp" not in st.session_state:
         st.session_state["temp_comp"] = None
 
-    col1, col2, col3 = st.columns([1, 1.5, 1])
+    col1, col2, col3 = st.columns([1, 1.8, 1]) # Slightly wider for better fit
     
     with col2:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         if not st.session_state["temp_comp"]:
+            st.markdown('<div class="glass-card">', unsafe_allow_html=True)
             st.subheader("Musobaqa kodini kiriting")
-            comp_code = st.text_input("Imtihon kodi", key="main_code_input", placeholder="Masalan: 1234")
+            comp_code = st.text_input("Imtihon kodi", key="main_code_input", placeholder="Masalan: 1234", label_visibility="collapsed")
+            st.markdown("<br>", unsafe_allow_html=True) # Small spacing
             if st.button("Davom etish"):
                 if comp_code == "502500560":
                     st.session_state["role"] = "super_admin"
@@ -351,9 +353,9 @@ def admin_page():
                 if time_left > 0:
                     import streamlit.components.v1 as components
                     end_ts = time.time() + time_left
-                    html_timer = f"""<div style="font-family:sans-serif;background:#1e293b;color:#38bdf8;padding:10px;border-radius:10px;text-align:center;font-size:1.5rem;font-weight:800;border:1px solid #38bdf8;">⏳ <span id="at">--:--</span></div>
+                    html_timer = f"""<div style="font-family:sans-serif;background:#1e293b;color:#38bdf8;padding:10px;border-radius:10px;text-align:center;font-size:1.5rem;font-weight:800;border:2px solid #38bdf8;margin-bottom:5px;">⏳ <span id="at">--:--</span></div>
                     <script>var et={end_ts}*1000;function ut(){{var n=new Date().getTime();var d=et-n;if(d<=0){{document.getElementById('at').innerHTML="00:00";return;}}var m=Math.floor((d%(1000*60*60))/(1000*60)).toString().padStart(2,'0');var s=Math.floor((d%(1000*60))/1000).toString().padStart(2,'0');document.getElementById('at').innerHTML=m+":"+s;}}setInterval(ut,1000);ut();</script>"""
-                    components.html(html_timer, height=60)
+                    components.html(html_timer, height=80)
                     if st.button("🛑 To'xtatish"):
                         db.update_competition_status(comp_id, 'finished'); st.rerun()
                 else: db.update_competition_status(comp_id, 'finished'); st.rerun()
@@ -405,10 +407,10 @@ def student_page():
             st_autorefresh(interval=5000, key="st_active")
             import streamlit.components.v1 as components
             end_ts = time.time() + time_left
-            html_st_timer = f"""<div style="font-family:sans-serif;background:#0f172a;color:#f43f5e;padding:10px;border-radius:10px;text-align:center;font-size:1.2rem;font-weight:800;border:1px solid #f43f5e;"><span id="st">--:--</span></div>
+            html_st_timer = f"""<div style="font-family:sans-serif;background:#0f172a;color:#f43f5e;padding:10px;border-radius:10px;text-align:center;font-size:1.2rem;font-weight:800;border:2px solid #f43f5e;margin-bottom:5px;"><span id="st">--:--</span></div>
             <script>var et={end_ts}*1000;function ut(){{var n=new Date().getTime();var d=et-n;if(d<=0){{document.getElementById('st').innerHTML="TUGADI";return;}}var m=Math.floor((d%(1000*60*60))/(1000*60)).toString().padStart(2,'0');var s=Math.floor((d%(1000*60))/1000).toString().padStart(2,'0');document.getElementById('st').innerHTML="⏳ "+m+":"+s;}}setInterval(ut,1000);ut();</script>"""
             st.sidebar.markdown("---")
-            with st.sidebar: components.html(html_st_timer, height=60)
+            with st.sidebar: components.html(html_st_timer, height=80)
             
             st.markdown("## 📝 Savollar")
             for idx, q in enumerate(questions_db):
