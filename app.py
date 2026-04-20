@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import time
+import json
 import db
 
 # Initialize Database
@@ -318,7 +319,7 @@ def admin_page():
     </div>
     """, unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs(["📊 Reyting & Boshqaruv", "📝 Savollar"])
+    tab1, tab2, tab3 = st.tabs(["📊 Reyting & Boshqaruv", "🎫 Biletlar", "📝 Savollar"])
     
     with tab1:
         col1, col2 = st.columns([2, 1])
@@ -336,13 +337,17 @@ def admin_page():
             
             if students:
                 df = pd.DataFrame(students)
-                df['Progress'] = df['solved_questions'].apply(lambda x: len(x))
+                df["Bilet"] = df["ticket_number"].apply(lambda x: f"№{x}" if x else "-")
+                df["To'g'ri"] = df["solved_questions"].apply(len)
+                df["Xato"] = df["failed_questions"].apply(len)
+                df["Natija"] = df.apply(lambda row: f"{row['To'g'ri']}/{len(db.get_ticket_questions(comp_id, row['ticket_number'])) if row['ticket_number'] else '0'}", axis=1)
+                
                 ranks = [f"👑 {i+1}" if i < 3 else str(i+1) for i in range(len(df))]
                 df["O'rin"] = ranks
-                df = df[["O'rin", 'first_name', 'last_name', 'score', 'Progress']]
-                df.columns = ["O'rin", "Ism", "Familiya", "Ball", "Natija"]
-                df["Natija"] = df["Natija"].apply(lambda x: f"{x}/{len(questions_db)}")
-                st.dataframe(df, use_container_width=True, hide_index=True)
+                
+                final_df = df[["O'rin", 'first_name', 'last_name', 'Bilet', "To'g'ri", "Xato", "Natija"]]
+                final_df.columns = ["O'rin", "Ism", "Familiya", "Bilet", "To'g'ri", "Xato", "Natija"]
+                st.dataframe(final_df, use_container_width=True, hide_index=True)
             else: st.info("Hali hech kim yo'q.")
             st.markdown("</div>", unsafe_allow_html=True)
                 
@@ -387,10 +392,21 @@ def admin_page():
             st.markdown("</div>", unsafe_allow_html=True)
 
     with tab2:
+        st.markdown("<h3>Barcha Biletlar</h3>", unsafe_allow_html=True)
+        for t_num in range(1, 21):
+            with st.expander(f"🎫 Bilet №{t_num}"):
+                t_qs = db.get_ticket_questions(comp_id, t_num)
+                if t_qs:
+                    for i, q in enumerate(t_qs):
+                        st.write(f"**{i+1}.** {q['question']} *(Turi: {q['type']})*")
+                else:
+                    st.info("Bu bilet hali generatsiya qilinmagan. 'Boshqaruv' bo'limidan biletlarni tarqating.")
+
+    with tab3:
         for idx, q in enumerate(questions_db):
             st.markdown(f"""
             <div class="q-card">
-                <b>{idx+1}. {q['topic']}</b> ({q['score']} ball)<br>
+                <b>{idx+1}. {q['topic']}</b><br>
                 {q['question']}
             </div>
             """, unsafe_allow_html=True)
@@ -417,8 +433,9 @@ def student_page():
     st.sidebar.markdown(f"""
     <div class="glass-card" style="padding:15px; text-align:center;">
         <h2 style="margin:0;">👤</h2>
-        <h4 style="margin:5px 0;">{student['first_name']}</h4>
-        <div style="font-size:1.5rem; font-weight:800; color:#38bdf8;">{student['score']} <small style="font-size:0.7rem; color:#94a3b8;">BALL</small></div>
+        <h4 style="margin:5px 0;">{student['first_name']} {student['last_name']}</h4>
+        <div style="font-size:1.5rem; font-weight:800; color:#22c55e;">{len(solved)} <small style="font-size:0.7rem; color:#94a3b8;">TO'G'RI</small></div>
+        <div style="font-size:1rem; font-weight:600; color:#ef4444;">{len(student.get('failed_questions', []))} <small style="font-size:0.7rem; color:#94a3b8;">XATO</small></div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -443,33 +460,49 @@ def student_page():
 
             st.markdown(f"## 🎫 Bilet №{ticket_num}")
             
+            solved = student.get("solved_questions", [])
+            failed = student.get("failed_questions", [])
+            
             questions_db = db.get_ticket_questions(comp_id, ticket_num)
             
             for idx, q in enumerate(questions_db):
                 q_id = q['id']
                 is_solved = q_id in solved
-                icon = "✅" if is_solved else "⏳"
-                with st.expander(f"{icon} {idx+1}-savol"):
-                    st.markdown(f"<div class='q-card'>{q['question']}</div>", unsafe_allow_html=True)
-                    if is_solved:
-                        st.success("Yechilgan!")
-                    else:
-                        with st.form(key=f"f_{q_id}"):
-                            if q['type'] == 'test':
-                                options = json.loads(q['options']) if q['options'] else []
-                                ans = st.radio("Variantlardan birini tanlang:", options, key=f"radio_{q_id}")
+                is_failed = q_id in failed
+                
+                if is_solved: icon, color = "✅", "#22c55e"
+                elif is_failed: icon, color = "❌", "#ef4444"
+                else: icon, color = "⏳", "#94a3b8"
+                
+                st.markdown(f"#### {icon} {idx+1}-savol")
+                st.markdown(f"<div class='q-card' style='border-left-color: {color};'>{q['question']}</div>", unsafe_allow_html=True)
+                
+                if is_solved:
+                    st.success("To'g'ri javob berilgan!")
+                elif is_failed:
+                    st.error("Xato javob berilgan! Imkoniyat tugadi.")
+                else:
+                    with st.form(key=f"f_{q_id}"):
+                        if q['type'] == 'test':
+                            options = json.loads(q['options']) if q['options'] else []
+                            ans = st.radio("Variantlardan birini tanlang:", options, key=f"radio_{q_id}")
+                        else:
+                            ans = st.text_input("Javobingizni yozing:", key=f"input_{q_id}")
+                            
+                        if st.form_submit_button("Yuborish"):
+                            user_ans = str(ans).strip().replace(" ","").replace(",",".").lower()
+                            correct_options = [a.strip().replace(" ","").replace(",",".").lower() for a in str(q["answer"]).split("|")]
+                            
+                            if user_ans in correct_options:
+                                st.balloons()
+                                db.update_student_progress(student_id, solved + [q_id], failed)
+                                st.rerun()
                             else:
-                                ans = st.text_input("Javobingizni yozing:", key=f"input_{q_id}")
-                                
-                            if st.form_submit_button("Yuborish"):
-                                user_ans = str(ans).replace(" ","").replace(",",".").lower()
-                                correct = [a.replace(" ","").replace(",",".").lower() for a in str(q["answer"]).split("|")]
-                                if user_ans in correct:
-                                    st.balloons()
-                                    db.update_score(student_id, student["score"] + q['score'], solved + [q_id])
-                                    st.rerun()
-                                else:
-                                    st.error("Noto'g'ri javob!")
+                                db.update_student_progress(student_id, solved, failed + [q_id])
+                                st.error("Noto'g'ri javob!")
+                                time.sleep(1)
+                                st.rerun()
+                st.markdown("---")
         else:
             st.error("Vaqt tugadi!")
     elif comp['status'] == 'finished':

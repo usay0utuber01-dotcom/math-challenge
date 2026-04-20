@@ -38,6 +38,7 @@ def init_db():
             password TEXT NOT NULL,
             score INTEGER DEFAULT 0,
             solved_questions TEXT DEFAULT '[]',
+            failed_questions TEXT DEFAULT '[]',
             ticket_number INTEGER,
             last_active REAL,
             FOREIGN KEY (competition_id) REFERENCES competitions (id) ON DELETE CASCADE
@@ -88,23 +89,23 @@ def init_db():
     # Migration: Add columns if they don't exist
     try:
         c.execute('ALTER TABLE students ADD COLUMN last_active REAL')
-    except sqlite3.OperationalError:
-        pass
+    except sqlite3.OperationalError: pass
         
     try:
         c.execute('ALTER TABLE students ADD COLUMN ticket_number INTEGER')
-    except sqlite3.OperationalError:
-        pass
+    except sqlite3.OperationalError: pass
+
+    try:
+        c.execute('ALTER TABLE students ADD COLUMN failed_questions TEXT DEFAULT "[]"')
+    except sqlite3.OperationalError: pass
 
     try:
         c.execute('ALTER TABLE questions ADD COLUMN type TEXT DEFAULT "test"')
-    except sqlite3.OperationalError:
-        pass
+    except sqlite3.OperationalError: pass
 
     try:
         c.execute('ALTER TABLE questions ADD COLUMN options TEXT')
-    except sqlite3.OperationalError:
-        pass
+    except sqlite3.OperationalError: pass
         
     conn.commit()
     conn.close()
@@ -234,6 +235,10 @@ def get_student_by_login(competition_id, first_name, last_name, password):
     if row:
         st_dict = dict(row)
         st_dict['solved_questions'] = json.loads(st_dict['solved_questions'])
+        try:
+            st_dict['failed_questions'] = json.loads(st_dict['failed_questions'])
+        except:
+            st_dict['failed_questions'] = []
         return st_dict
     return None
 
@@ -249,6 +254,10 @@ def get_student(student_id):
             st_dict['solved_questions'] = json.loads(st_dict['solved_questions'])
         except:
             st_dict['solved_questions'] = []
+        try:
+            st_dict['failed_questions'] = json.loads(st_dict['failed_questions'])
+        except:
+            st_dict['failed_questions'] = []
         return st_dict
     return None
 
@@ -266,21 +275,25 @@ def get_all_students(competition_id):
             d['solved_questions'] = json.loads(d['solved_questions'])
         except:
             d['solved_questions'] = []
+        try:
+            d['failed_questions'] = json.loads(d['failed_questions'])
+        except:
+            d['failed_questions'] = []
         result.append(d)
     return result
 
-def update_score(student_id, new_score, solved_questions_list):
+def update_student_progress(student_id, solved_list, failed_list):
     conn = get_connection()
     c = conn.cursor()
-    c.execute('UPDATE students SET score = ?, solved_questions = ? WHERE id = ?', 
-              (new_score, json.dumps(solved_questions_list), student_id))
+    c.execute('UPDATE students SET solved_questions = ?, failed_questions = ?, score = ? WHERE id = ?', 
+              (json.dumps(solved_list), json.dumps(failed_list), len(solved_list), student_id))
     conn.commit()
     conn.close()
 
 def reset_scores(competition_id):
     conn = get_connection()
     c = conn.cursor()
-    c.execute("UPDATE students SET score = 0, solved_questions = '[]' WHERE competition_id = ?", (competition_id,))
+    c.execute("UPDATE students SET score = 0, solved_questions = '[]', failed_questions = '[]', ticket_number = NULL WHERE competition_id = ?", (competition_id,))
     c.execute('UPDATE competitions SET status = "pending", start_time = NULL WHERE id = ?', (competition_id,))
     conn.commit()
     conn.close()
