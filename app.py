@@ -338,14 +338,14 @@ def admin_page():
             if students:
                 df = pd.DataFrame(students)
                 df["Bilet"] = df["ticket_number"].apply(lambda x: f"№{x}" if x else "-")
-                df["To'g'ri"] = df["solved_questions"].apply(len)
+                df["Togri"] = df["solved_questions"].apply(len)
                 df["Xato"] = df["failed_questions"].apply(len)
-                df["Natija"] = df.apply(lambda row: f"{row['To'g'ri']}/{len(db.get_ticket_questions(comp_id, row['ticket_number'])) if row['ticket_number'] else '0'}", axis=1)
+                df["Natija"] = df["Togri"].apply(lambda x: f"{x}/20")
                 
                 ranks = [f"👑 {i+1}" if i < 3 else str(i+1) for i in range(len(df))]
                 df["O'rin"] = ranks
                 
-                final_df = df[["O'rin", 'first_name', 'last_name', 'Bilet', "To'g'ri", "Xato", "Natija"]]
+                final_df = df[["O'rin", 'first_name', 'last_name', 'Bilet', "Togri", "Xato", "Natija"]]
                 final_df.columns = ["O'rin", "Ism", "Familiya", "Bilet", "To'g'ri", "Xato", "Natija"]
                 st.dataframe(final_df, use_container_width=True, hide_index=True)
             else: st.info("Hali hech kim yo'q.")
