@@ -309,8 +309,8 @@ def admin_page():
             <span class="stat-val">{len(students)}</span>
         </div>
         <div class="stat-card">
-            <span class="stat-label">Savollar</span>
-            <span class="stat-val">{len(questions_db)}</span>
+            <span class="stat-label">Biletlar</span>
+            <span class="stat-val">20</span>
         </div>
         <div class="stat-card">
             <span class="stat-label">Eng yuqori ball</span>
@@ -340,7 +340,7 @@ def admin_page():
                 df["Bilet"] = df["ticket_number"].apply(lambda x: f"№{x}" if x else "-")
                 df["Togri"] = df["solved_questions"].apply(len)
                 df["Xato"] = df["failed_questions"].apply(len)
-                df["Natija"] = df["Togri"].apply(lambda x: f"{x}/20")
+                df["Natija"] = df["Togri"].apply(lambda x: f"{x} (20 taladan)")
                 
                 ranks = [f"👑 {i+1}" if i < 3 else str(i+1) for i in range(len(df))]
                 df["O'rin"] = ranks
@@ -512,7 +512,7 @@ def student_page():
         # Leaderboard
         students = db.get_all_students(comp_id)
         df = pd.DataFrame(students)
-        df['Natija'] = df['solved_questions'].apply(lambda x: f"{len(x)}/{len(questions_db)}")
+        df['Natija'] = df['solved_questions'].apply(lambda x: f"{len(x)} (20 taladan)")
         df = df[["first_name", "last_name", "score", "Natija"]].rename(columns={"first_name":"Ism","last_name":"Familiya","score":"Ball"})
         st.dataframe(df, use_container_width=True, hide_index=True)
     else:
