@@ -53,8 +53,8 @@ def init_db():
             topic TEXT NOT NULL,
             question TEXT NOT NULL,
             answer TEXT NOT NULL,
-            options TEXT, -- JSON list of options for MCQ
-            type TEXT DEFAULT 'test', -- 'test' (MCQ) or 'yopiq' (Open)
+            type TEXT DEFAULT 'test',
+            options TEXT,
             score INTEGER DEFAULT 10,
             FOREIGN KEY (competition_id) REFERENCES competitions (id) ON DELETE CASCADE
         )
@@ -81,10 +81,10 @@ def init_db():
         default_id = c.lastrowid
         
         # Seed questions for the default competition
-        for i, q in enumerate(QUESTIONS):
-            score = (i + 1) * 10
-            c.execute('INSERT INTO questions (competition_id, topic, question, answer, score) VALUES (?, ?, ?, ?, ?)',
-                      (default_id, q['topic'], q['question'], q['answer'], score))
+        for q in QUESTIONS:
+            score = 10
+            c.execute('INSERT INTO questions (competition_id, topic, question, answer, type, options, score) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                      (default_id, q['topic'], q['question'], q['answer'], q.get('type','test'), json.dumps(q.get('options',[]), ensure_ascii=False), score))
                       
     # Migration: Add columns if they don't exist
     try:

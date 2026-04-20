@@ -18,7 +18,12 @@ QUESTIONS = [
         "question": "Ikkita o'yin kubi baravar tashlanganda quyidagi hodisalarning ro'y berish ehtimolini toping: A - tushgan ochkolar yig'indisi 8 ga teng. B - tushgan ochkolar ko'paytmasi 8 ga teng. C - tushgan ochkolar yig'indisi ularning ko'paytmasidan katta.",
         "answer": "P(A)=5/36, P(B)=1/9, P(C)=11/36",
         "type": "test",
-        "options": ["P(A)=5/36, P(B)=1/9, P(C)=11/36", "P(A)=1/6, P(B)=1/9, P(C)=1/4", "P(A)=5/36, P(B)=1/18, P(C)=11/36", "P(A)=1/12, P(B)=1/9, P(C)=1/2"]
+        "options": [
+            "P(A)=5/36, P(B)=1/18, P(C)=11/36",
+            "P(A)=1/12, P(B)=1/9, P(C)=1/2",
+            "P(A)=5/36, P(B)=1/9, P(C)=11/36",
+            "P(A)=1/6, P(B)=1/9, P(C)=1/4"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -39,28 +44,48 @@ QUESTIONS = [
         "question": "Qutida 5 ta bir xil buyum bo'lib, ularning 3 tasi bo'yalgan. Tavakkaliga 2 ta buyum olinganda ular orasida: A) bitta bo'yalgan bo'lishi; B) ikkita bo'yalgan bo'lishi; C) hech bo'lmaganda bitta bo'yalgan bo'lishi ehtimolini toping.",
         "answer": "a) 0.6; b) 0.3; c) 0.9",
         "type": "test",
-        "options": ["a) 0.6; b) 0.3; c) 0.9", "a) 0.5; b) 0.4; c) 0.8", "a) 0.6; b) 0.2; c) 0.8", "a) 0.4; b) 0.3; c) 0.7"]
+        "options": [
+            "a) 0.6; b) 0.3; c) 0.9",
+            "a) 0.4; b) 0.3; c) 0.7",
+            "a) 0.5; b) 0.4; c) 0.8",
+            "a) 0.6; b) 0.2; c) 0.8"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
         "question": "Qutida 12 ta oq va 8 ta qizil shar bor. Tavakklaliga A) bitta shar olinganda, uning oq bo'lishi; B) bitta shar olinganda, uning qizil bo'lishi; C) 2 ta shar olinganda, ularning turli rangda bo'lishi; D) 8 ta shar olinganda, ularning 3 tasi qizil rangli bo'lishi ehtimollarini toping.",
         "answer": "a) 0.6; b) 0.4; c) 48/95",
         "type": "test",
-        "options": ["a) 0.6; b) 0.4; c) 48/95", "a) 0.5; b) 0.5; c) 40/95", "a) 0.6; b) 0.4; c) 50/95", "a) 0.7; b) 0.3; c) 48/95"]
+        "options": [
+            "a) 0.6; b) 0.4; c) 48/95",
+            "a) 0.6; b) 0.4; c) 50/95",
+            "a) 0.5; b) 0.5; c) 40/95",
+            "a) 0.7; b) 0.3; c) 48/95"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
         "question": "Qutida 60 ta lampochka bo'lib, ularning 10 tasi yaroqsiz. Tavakkaliga 4 ta lampochka olinadi. Olingan lampochkalar ichida: A) yaroqsizlari yo'q bo'lishi; B) yaroqlilari yo'q bo'lishi ehtimollarini toping.",
         "answer": "a) 14/323; b) 0.04334",
         "type": "test",
-        "options": ["a) 14/323; b) 0.04334", "a) 15/323; b) 0.05", "a) 14/323; b) 0.01", "a) 10/323; b) 0.04334"]
+        "options": [
+            "a) 14/323; b) 0.04334",
+            "a) 15/323; b) 0.05",
+            "a) 14/323; b) 0.01",
+            "a) 10/323; b) 0.04334"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
         "question": "Yashikda 30 ta birinchi nav va 6 ta ikkinchi nav detal bor. Tavakkaliga 3 ta detal olinadi: A) olingan uchchala detal ham birinchi nav bo'lish ehtimolini; B) olingan detallarning hech bo'lmaganda bittasi birinchi nav bo'lishi ehtimolini toping.",
         "answer": "a) 0.57; b) 356/357",
         "type": "test",
-        "options": ["a) 0.57; b) 356/357", "a) 0.50; b) 350/357", "a) 0.60; b) 1", "a) 0.57; b) 300/357"]
+        "options": [
+            "a) 0.60; b) 1",
+            "a) 0.57; b) 300/357",
+            "a) 0.57; b) 356/357",
+            "a) 0.50; b) 350/357"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -74,14 +99,24 @@ QUESTIONS = [
         "question": "N ta buyumdan iborat partiyada M ta standart buyum bor. Partiyadan tavakkaliga n ta buyum olinadi. Bu n ta buyum ichida rosa m ta standart buyum borligi ehtimolini toping.",
         "answer": "C_M^m * C_{N-M}^{n-m} / C_N^n",
         "type": "test",
-        "options": ["C_M^m * C_{N-M}^{n-m} / C_N^n", "C_M^m / C_N^n", "C_{N-M}^{n-m} / C_N^n", "C_M^m * C_{N-M}^{n-m}"]
+        "options": [
+            "C_M^m * C_{N-M}^{n-m}",
+            "C_M^m / C_N^n",
+            "C_M^m * C_{N-M}^{n-m} / C_N^n",
+            "C_{N-M}^{n-m} / C_N^n"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
         "question": "M ta telegramma tasodifiy ravishda N ta aloqa bo'limiga taqsimlandi (N>M). Har bir aloqa bo'limiga bittadan ortiq telegramma kelmaslik hodisasining ehtimolini toping.",
         "answer": "A_N^M / N^M",
         "type": "test",
-        "options": ["A_N^M / N^M", "C_N^M / N^M", "M! / N^M", "1 / N^M"]
+        "options": [
+            "C_N^M / N^M",
+            "M! / N^M",
+            "1 / N^M",
+            "A_N^M / N^M"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -102,14 +137,24 @@ QUESTIONS = [
         "question": "Hamma tomoni bo'yalgan kub 1000 ta bir xil o'lchamli kubchalarga bo'lingan va yaxshilab aralashtirilgan. Tavakkaliga olingan kubchaning a) bitta; b) ikkita; c) uchta tomoni bo'yalgan bo'lishi ehtimolini toping.",
         "answer": "a) 0.384; b) 0.096; c) 0.008",
         "type": "test",
-        "options": ["a) 0.384; b) 0.096; c) 0.008", "a) 0.4; b) 0.1; c) 0.01", "a) 0.384; b) 0.080; c) 0.008", "a) 0.3; b) 0.1; c) 0.05"]
+        "options": [
+            "a) 0.384; b) 0.096; c) 0.008",
+            "a) 0.4; b) 0.1; c) 0.01",
+            "a) 0.384; b) 0.080; c) 0.008",
+            "a) 0.3; b) 0.1; c) 0.05"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
         "question": "Aralashtirilgan 36 talik kartalar dastasidan tavakkaliga bittasi olinadi. Olingan kartaning a) 'tuz' bo'lish, b) rasmli (ya'ni 'qirol', 'dama' yoki 'valet') bo'lish ehtimoli qanday?",
         "answer": "a) 1/9; b) 1/3",
         "type": "test",
-        "options": ["a) 1/9; b) 1/3", "a) 1/4; b) 1/2", "a) 1/13; b) 3/13", "a) 1/9; b) 1/4"]
+        "options": [
+            "a) 1/4; b) 1/2",
+            "a) 1/9; b) 1/3",
+            "a) 1/13; b) 3/13",
+            "a) 1/9; b) 1/4"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -123,7 +168,12 @@ QUESTIONS = [
         "question": "Bitta o'yin kubi tashlangan. Unda a) juft ochko tushishi; b) 5 ochkodan kam bo'lmagan ochko tushishi hodisalarining ehtimollarini toping.",
         "answer": "a) 1/2; b) 1/3",
         "type": "test",
-        "options": ["a) 1/2; b) 1/3", "a) 1/2; b) 1/2", "a) 1/3; b) 1/2", "a) 2/3; b) 1/3"]
+        "options": [
+            "a) 1/3; b) 1/2",
+            "a) 1/2; b) 1/3",
+            "a) 2/3; b) 1/3",
+            "a) 1/2; b) 1/2"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -158,14 +208,24 @@ QUESTIONS = [
         "question": "Telefon raqami 7 ta raqamdan iborat. Telefon raqamlarining: a) turli xil bo'lishi; b) 3 ga karrali bo'lishi ehtimollarini toping.",
         "answer": "a) 0.06048; b) 1/3",
         "type": "test",
-        "options": ["a) 0.06048; b) 1/3", "a) 0.1; b) 1/2", "a) 0.06; b) 1/4", "a) 0.05; b) 1/3"]
+        "options": [
+            "a) 0.06; b) 1/4",
+            "a) 0.05; b) 1/3",
+            "a) 0.06048; b) 1/3",
+            "a) 0.1; b) 1/2"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
         "question": "Qutida faqat ranglari bilan farqlanuvchi 22 ta shar bor: 9 ta ko'k, 5 ta sariq va 8 ta oq. Qaysi hodisaning ehtimoli kattaroq: qutidan sariq sharning chiqishimi yoki o'yin kubi tashlanganda 5 ochko tushishimi?",
         "answer": "Sariq shar (5/22 > 1/6)",
         "type": "test",
-        "options": ["Sariq shar (5/22 > 1/6)", "O'yin kubi (1/6 > 5/22)", "Teng", "Hech biri"]
+        "options": [
+            "Teng",
+            "O'yin kubi (1/6 > 5/22)",
+            "Sariq shar (5/22 > 1/6)",
+            "Hech biri"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -193,7 +253,12 @@ QUESTIONS = [
         "question": "Uchta o'yin kubi tashlangan. Quyidagi hodisalar: a) ixtiyoriy ikkita kubda bir ochko, uchinchisida esa bir bo'lmagan ochko tushishi; b) ixtiyoriy ikkita kubda bir xildagi ochko, uchinchisida esa boshqa ochko; c) barcha kublarda turli ochkolar tushishi ehtimollarini toping.",
         "answer": "a) 5/72; b) 5/12; c) 5/9",
         "type": "test",
-        "options": ["a) 5/72; b) 5/12; c) 5/9", "a) 1/36; b) 1/6; c) 1/2", "a) 5/72; b) 1/6; c) 4/9", "a) 1/12; b) 1/4; c) 5/9"]
+        "options": [
+            "a) 1/12; b) 1/4; c) 5/9",
+            "a) 1/36; b) 1/6; c) 1/2",
+            "a) 5/72; b) 5/12; c) 5/9",
+            "a) 5/72; b) 1/6; c) 4/9"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -249,7 +314,12 @@ QUESTIONS = [
         "question": "O'tgan yilgi chempionatda sovrindor o'rin olgan to'rt komanda bu yilgi yigirmata komanda ichida birinchilik uchun qatnashmoqda. Agar hamma komanda beshtadan qilib, jami to'rtta guruhga ajratilgan bo'lsa, quyidagi hodisalarning ehtimolini toping: A={birinchi va ikkinchi guruhga sovrindorlar tushmagan}, B={har bir guruhga bittadan sovrindor tushgan}.",
         "answer": "a) 14/323; b) 125/969",
         "type": "test",
-        "options": ["a) 14/323; b) 125/969", "a) 1/10; b) 1/5", "a) 14/323; b) 100/969", "a) 12/323; b) 125/969"]
+        "options": [
+            "a) 14/323; b) 100/969",
+            "a) 14/323; b) 125/969",
+            "a) 1/10; b) 1/5",
+            "a) 12/323; b) 125/969"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -270,14 +340,24 @@ QUESTIONS = [
         "question": "5 ta radiostanstiyaga ma'lum bir paytda 6 ta radioto'lqinida ishlashga ruhsat berilgan. Har bir radiostanstiya to'lqinni tavakkaliga tanlaydi. Quyidagi hodisalarning ehtimollarini toping: A = {hech bo'lmaganda 2 ta to'lqin bir-biriga mos keladi}; B = {har xil radioto'lqinlaridan foydalaniladi}.",
         "answer": "a) 1295/1296; b) 5/144",
         "type": "test",
-        "options": ["a) 1295/1296; b) 5/144", "a) 1; b) 1/120", "a) 0.99; b) 0.05", "a) 1295/1296; b) 1/144"]
+        "options": [
+            "a) 0.99; b) 0.05",
+            "a) 1295/1296; b) 5/144",
+            "a) 1; b) 1/120",
+            "a) 1295/1296; b) 1/144"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
         "question": "3 ta 1-kurs, 5 ta 2-kurs va 7 ta 3-kurs talabasi fakultet talabalar kengashiga nomzod hisoblanadi. Ular orasidan tavakkaliga 5 talaba tanlandi. Quyidagi hodisalarning ehtimolini toping: A = {faqat 3- kurslar tanlandi}; B = {hamma 1- kurslar tanlandi}; C = {bitta ham 2- kurs talabasi tanlanmadi}.",
         "answer": "a) 1/143; b) 2/91; c) 5/144",
         "type": "test",
-        "options": ["a) 1/143; b) 2/91; c) 5/144", "a) 1/140; b) 1/90; c) 1/30", "a) 2/143; b) 2/91; c) 6/144", "a) 1/143; b) 3/91; c) 5/144"]
+        "options": [
+            "a) 1/143; b) 2/91; c) 5/144",
+            "a) 1/140; b) 1/90; c) 1/30",
+            "a) 2/143; b) 2/91; c) 6/144",
+            "a) 1/143; b) 3/91; c) 5/144"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -389,7 +469,12 @@ QUESTIONS = [
         "question": "A va B hodisalarning qiymatlari 0 <= a <= 1; 0 <= b <= 1 kvadratda teng imkoniyatli bo'lsa, quyidagi hodisalarning ehtimollarini toping: A = { x^2 + 2ax + b kvadrat uchhadning ildizlari haqiqiy }; B = { x^2 + 2ax + b kvadrat uchhadning ildizlari musbat }.",
         "answer": "a) 2/3; b) 1/12",
         "type": "test",
-        "options": ["a) 2/3; b) 1/12", "a) 1/2; b) 1/4", "a) 2/3; b) 1/6", "a) 3/4; b) 1/12"]
+        "options": [
+            "a) 1/2; b) 1/4",
+            "a) 3/4; b) 1/12",
+            "a) 2/3; b) 1/6",
+            "a) 2/3; b) 1/12"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -473,7 +558,12 @@ QUESTIONS = [
         "question": "5 ta firma 3 ta turli shartnoma bo'yicha taklif berdi. Firmalar necha usul bilan shartnoma imzolashi mumkin? F3 firmaning shartnoma tuza olishi ehtimoli qanday?",
         "answer": "60; 3/5",
         "type": "test",
-        "options": ["60; 3/5", "60; 1/5", "120; 3/5", "60; 2/5"]
+        "options": [
+            "60; 1/5",
+            "60; 2/5",
+            "120; 3/5",
+            "60; 3/5"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
@@ -487,7 +577,12 @@ QUESTIONS = [
         "question": "Talabaga kerakli formulani uchta ma'lumotnomada bo'lishi ehtimoli mos ravishda 0,6; 0,7; 0,8 ga teng. Formula: a) faqat bitta; b) faqat ikkita; c) uchchala ma'lumotnomada bo'lishi ehtimolini toping.",
         "answer": "a) 0.188; b) 0.452; c) 0.336",
         "type": "test",
-        "options": ["a) 0.188; b) 0.452; c) 0.336", "a) 0.2; b) 0.4; c) 0.3", "a) 0.188; b) 0.5; c) 0.3", "a) 0.1; b) 0.452; c) 0.4"]
+        "options": [
+            "a) 0.188; b) 0.5; c) 0.3",
+            "a) 0.2; b) 0.4; c) 0.3",
+            "a) 0.1; b) 0.452; c) 0.4",
+            "a) 0.188; b) 0.452; c) 0.336"
+        ]
     },
     {
         "topic": "Ehtimollar nazariyasi",
