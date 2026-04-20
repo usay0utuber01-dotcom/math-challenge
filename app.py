@@ -364,6 +364,11 @@ def admin_page():
                 if st.button("🟢 Boshlash"):
                     db.update_competition_status(comp_id, 'started', start_time=time.time())
                     st.rerun()
+                if st.button("🎟️ Biletlarni tarqatish"):
+                    db.assign_tickets_randomly(comp_id)
+                    st.success("Biletlar muvaffaqiyatli tarqatildi!")
+                    time.sleep(1)
+                    st.rerun()
             elif status == 'started':
                 time_left = get_time_left(comp)
                 if time_left > 0:
@@ -422,6 +427,8 @@ def student_page():
         if time_left > 0:
             st_autorefresh(interval=5000, key="st_active")
             db.update_last_active(student_id)
+            
+            # Timer display
             import streamlit.components.v1 as components
             end_ts = time.time() + time_left
             html_st_timer = f"""<div style="font-family:sans-serif;background:#0f172a;color:#f43f5e;padding:10px;border-radius:10px;text-align:center;font-size:1.2rem;font-weight:800;border:2px solid #f43f5e;margin-bottom:5px;"><span id="st">--:--</span></div>
@@ -429,26 +436,42 @@ def student_page():
             st.sidebar.markdown("---")
             with st.sidebar: components.html(html_st_timer, height=80)
             
-            st.markdown("## 📝 Savollar")
+            ticket_num = student.get('ticket_number')
+            if not ticket_num:
+                st.warning("⚠️ Sizga hali bilet biriktirilmagan. Admin biletlarni tarqatishini kuting.")
+                return
+
+            st.markdown(f"## 🎫 Bilet №{ticket_num}")
+            
+            questions_db = db.get_ticket_questions(comp_id, ticket_num)
+            
             for idx, q in enumerate(questions_db):
                 q_id = q['id']
                 is_solved = q_id in solved
                 icon = "✅" if is_solved else "⏳"
-                with st.expander(f"{icon} {idx+1}-savol | {q['topic']}"):
+                with st.expander(f"{icon} {idx+1}-savol"):
                     st.markdown(f"<div class='q-card'>{q['question']}</div>", unsafe_allow_html=True)
-                    if is_solved: st.success("Yechilgan!")
+                    if is_solved:
+                        st.success("Yechilgan!")
                     else:
                         with st.form(key=f"f_{q_id}"):
-                            ans = st.text_input("Javob:")
-                            if st.form_submit_button("Tekshirish"):
-                                user_ans = ans.replace(" ","").replace(",",".").lower()
+                            if q['type'] == 'test':
+                                options = json.loads(q['options']) if q['options'] else []
+                                ans = st.radio("Variantlardan birini tanlang:", options, key=f"radio_{q_id}")
+                            else:
+                                ans = st.text_input("Javobingizni yozing:", key=f"input_{q_id}")
+                                
+                            if st.form_submit_button("Yuborish"):
+                                user_ans = str(ans).replace(" ","").replace(",",".").lower()
                                 correct = [a.replace(" ","").replace(",",".").lower() for a in str(q["answer"]).split("|")]
                                 if user_ans in correct:
                                     st.balloons()
                                     db.update_score(student_id, student["score"] + q['score'], solved + [q_id])
                                     st.rerun()
-                                else: st.error("Xato!")
-        else: st.error("Vaqt tugadi!")
+                                else:
+                                    st.error("Noto'g'ri javob!")
+        else:
+            st.error("Vaqt tugadi!")
     elif comp['status'] == 'finished':
         st.markdown("<div class='glass-card' style='text-align:center;'><h1>🏁 Musobaqa Yakunlandi</h1>", unsafe_allow_html=True)
         st.write(f"Sizning ballingiz: **{student['score']}**")

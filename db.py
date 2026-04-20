@@ -38,6 +38,7 @@ def init_db():
             password TEXT NOT NULL,
             score INTEGER DEFAULT 0,
             solved_questions TEXT DEFAULT '[]',
+            ticket_number INTEGER,
             last_active REAL,
             FOREIGN KEY (competition_id) REFERENCES competitions (id) ON DELETE CASCADE
         )
@@ -51,8 +52,20 @@ def init_db():
             topic TEXT NOT NULL,
             question TEXT NOT NULL,
             answer TEXT NOT NULL,
+            options TEXT, -- JSON list of options for MCQ
+            type TEXT DEFAULT 'test', -- 'test' (MCQ) or 'yopiq' (Open)
             score INTEGER DEFAULT 10,
             FOREIGN KEY (competition_id) REFERENCES competitions (id) ON DELETE CASCADE
+        )
+    ''')
+
+    # Create ticket_questions table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_number INTEGER NOT NULL,
+            question_id INTEGER NOT NULL,
+            FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
         )
     ''')
     
@@ -72,11 +85,26 @@ def init_db():
             c.execute('INSERT INTO questions (competition_id, topic, question, answer, score) VALUES (?, ?, ?, ?, ?)',
                       (default_id, q['topic'], q['question'], q['answer'], score))
                       
-    # Migration: Add last_active if it doesn't exist
+    # Migration: Add columns if they don't exist
     try:
         c.execute('ALTER TABLE students ADD COLUMN last_active REAL')
     except sqlite3.OperationalError:
-        pass # Already exists
+        pass
+        
+    try:
+        c.execute('ALTER TABLE students ADD COLUMN ticket_number INTEGER')
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute('ALTER TABLE questions ADD COLUMN type TEXT DEFAULT "test"')
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        c.execute('ALTER TABLE questions ADD COLUMN options TEXT')
+    except sqlite3.OperationalError:
+        pass
         
     conn.commit()
     conn.close()
@@ -95,9 +123,10 @@ def create_competition(name, code, admin_password, time_limit_min=30):
         
         # Seed with default questions for new competitions too
         for i, q in enumerate(QUESTIONS):
-            score = (i + 1) * 10
-            c.execute('INSERT INTO questions (competition_id, topic, question, answer, score) VALUES (?, ?, ?, ?, ?)',
-                      (comp_id, q['topic'], q['question'], q['answer'], score))
+            score = 10 # Default score
+            options = json.dumps(q.get('options', []))
+            c.execute('INSERT INTO questions (competition_id, topic, question, answer, options, type, score) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                      (comp_id, q['topic'], q['question'], q['answer'], options, q.get('type', 'test'), score))
                       
         conn.commit()
         return comp_id
@@ -268,5 +297,84 @@ def delete_inactive_students(competition_id):
     c = conn.cursor()
     # Delete students with 0 score
     c.execute('DELETE FROM students WHERE competition_id = ? AND score = 0', (competition_id,))
+    conn.commit()
+    conn.close()
+
+# --- Ticket Management ---
+
+def assign_tickets_randomly(competition_id):
+    conn = get_connection()
+    c = conn.cursor()
+    # Ensure tickets are generated for this competition if they don't exist
+    c.execute('SELECT COUNT(*) FROM ticket_questions WHERE question_id IN (SELECT id FROM questions WHERE competition_id = ?)', (competition_id,))
+    if c.fetchone()[0] == 0:
+        generate_tickets_for_competition(competition_id)
+
+    # Get all students in the competition
+    c.execute('SELECT id FROM students WHERE competition_id = ?', (competition_id,))
+    students = c.fetchall()
+    
+    import random
+    for student in students:
+        ticket_num = random.randint(1, 20)
+        c.execute('UPDATE students SET ticket_number = ? WHERE id = ?', (ticket_num, student['id']))
+    
+    conn.commit()
+    conn.close()
+
+def generate_tickets_for_competition(competition_id):
+    conn = get_connection()
+    c = conn.cursor()
+    
+    # Get all questions for this competition
+    c.execute('SELECT id, type FROM questions WHERE competition_id = ?', (competition_id,))
+    questions = [dict(r) for r in c.fetchall()]
+    
+    test_qs = [q['id'] for q in questions if q['type'] == 'test']
+    yopiq_qs = [q['id'] for q in questions if q['type'] == 'yopiq']
+    
+    import random
+    
+    for ticket_num in range(1, 21):
+        # Pick 15 test questions (if enough, otherwise repeat)
+        selected_test = random.sample(test_qs, min(15, len(test_qs)))
+        while len(selected_test) < 15 and test_qs:
+             selected_test.append(random.choice(test_qs))
+             
+        # Pick 5 yopiq questions
+        selected_yopiq = random.sample(yopiq_qs, min(5, len(yopiq_qs)))
+        while len(selected_yopiq) < 5 and yopiq_qs:
+            selected_yopiq.append(random.choice(yopiq_qs))
+            
+        all_selected = selected_test + selected_yopiq
+        for q_id in all_selected:
+            c.execute('INSERT INTO ticket_questions (ticket_number, question_id) VALUES (?, ?)', (ticket_num, q_id))
+            
+    conn.commit()
+    conn.close()
+
+def get_ticket_questions(competition_id, ticket_number):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('''
+        SELECT q.* FROM questions q
+        JOIN ticket_questions tq ON q.id = tq.question_id
+        WHERE q.competition_id = ? AND tq.ticket_number = ?
+        ORDER BY q.id ASC
+    ''', (competition_id, ticket_number))
+    rows = c.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def setup_tickets(competition_id, tickets_data):
+    """
+    tickets_data: dict {ticket_num: [question_ids]}
+    """
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute('DELETE FROM ticket_questions WHERE question_id IN (SELECT id FROM questions WHERE competition_id = ?)', (competition_id,))
+    for ticket_num, q_ids in tickets_data.items():
+        for q_id in q_ids:
+            c.execute('INSERT INTO ticket_questions (ticket_number, question_id) VALUES (?, ?)', (ticket_num, q_id))
     conn.commit()
     conn.close()
