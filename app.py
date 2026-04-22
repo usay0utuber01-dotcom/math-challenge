@@ -4,6 +4,7 @@ import pandas as pd
 import time
 import json
 import db
+import math
 
 # Initialize Database
 db.init_db()
@@ -438,6 +439,72 @@ def student_page():
         <div style="font-size:1rem; font-weight:600; color:#ef4444;">{len(student.get('failed_questions', []))} <small style="font-size:0.7rem; color:#94a3b8;">XATO</small></div>
     </div>
     """, unsafe_allow_html=True)
+
+    # --- Formula Panel ---
+    with st.sidebar:
+        st.markdown("---")
+        with st.expander("📚 Ehtimollik va Statistika Formulalari", expanded=False):
+            st.markdown("#### 1. Kombinatorika")
+            st.latex(r"P_n = n! \quad \text{(O'rin almashtirish)}")
+            st.latex(r"A_n^k = \frac{n!}{(n-k)!} \quad \text{(O'rinlashtirish)}")
+            st.latex(r"C_n^k = \frac{n!}{k!(n-k)!} \quad \text{(Guruhlash)}")
+            
+            st.markdown("#### 2. Ehtimollik Ta'rifi")
+            st.latex(r"P(A) = \frac{m}{n} \quad (0 \le P(A) \le 1)")
+            st.latex(r"P(\bar{A}) = 1 - P(A) \quad \text{(Zidd hodisa)}")
+            
+            st.markdown("#### 3. Qo'shish va Ko'paytirish")
+            st.latex(r"P(A+B) = P(A) + P(B) - P(AB)")
+            st.latex(r"P(AB) = P(A) \cdot P(B|A)")
+            
+            st.markdown("#### 4. To'la ehtimollik va Bayes")
+            st.latex(r"P(A) = \sum_{i=1}^n P(H_i)P(A|H_i)")
+            st.latex(r"P(H_i|A) = \frac{P(H_i)P(A|H_i)}{P(A)}")
+            
+            st.markdown("#### 5. Bernulli Sxemasi")
+            st.latex(r"P_n(k) = C_n^k p^k q^{n-k}")
+            st.latex(r"P_n(k) \approx \frac{\lambda^k e^{-\lambda}}{k!} \quad (\text{Puasson})")
+            
+            st.markdown("#### 6. Tasodifiy Miqdorlar")
+            st.latex(r"M(X) = \sum x_i p_i \quad \text{(Mat. kutilma)}")
+            st.latex(r"D(X) = M(X^2) - [M(X)]^2 \quad \text{(Dispersiya)}")
+            st.latex(r"\sigma(X) = \sqrt{D(X)} \quad \text{(O'rtacha kvadratik chetlanish)}")
+
+        with st.expander("🧮 Formula Kalkulyatori", expanded=True):
+            f_type = st.selectbox("Hisoblash uchun formulani tanlang:", [
+                "Tanlang...", "P(n) - O'rin almashtirish", "A(n, k) - O'rinlashtirish", 
+                "C(n, k) - Guruhlash", "P(A) = m/n", "Bernulli formulasi"
+            ])
+            
+            if f_type == "P(n) - O'rin almashtirish":
+                n_val = st.number_input("n =", min_value=0, max_value=170, step=1, key="calc_n_p")
+                st.success(f"Natija: {math.factorial(n_val):,}")
+            
+            elif f_type == "A(n, k) - O'rinlashtirish":
+                n_val = st.number_input("n =", min_value=0, step=1, key="calc_n_a")
+                k_val = st.number_input("k =", min_value=0, max_value=n_val, step=1, key="calc_k_a")
+                res = math.perm(n_val, k_val)
+                st.success(f"Natija: {res:,}")
+                
+            elif f_type == "C(n, k) - Guruhlash":
+                n_val = st.number_input("n =", min_value=0, step=1, key="calc_n_c")
+                k_val = st.number_input("k =", min_value=0, max_value=n_val, step=1, key="calc_k_c")
+                res = math.comb(n_val, k_val)
+                st.success(f"Natija: {res:,}")
+                
+            elif f_type == "P(A) = m/n":
+                m_val = st.number_input("m (qulay hollar) =", min_value=0, step=1, key="calc_m")
+                n_val = st.number_input("n (barcha hollar) =", min_value=1, step=1, key="calc_n_prob")
+                st.success(f"Natija: {round(m_val/n_val, 4)}")
+                
+            elif f_type == "Bernulli formulasi":
+                col1, col2 = st.columns(2)
+                n_val = col1.number_input("n (jami) =", min_value=1, step=1, key="calc_n_b")
+                k_val = col2.number_input("k (kerakli) =", min_value=0, max_value=n_val, step=1, key="calc_k_b")
+                p_val = st.number_input("p (ehtimollik) =", min_value=0.0, max_value=1.0, value=0.5, step=0.01, key="calc_p_b")
+                q_val = 1 - p_val
+                res = math.comb(n_val, k_val) * (p_val**k_val) * (q_val**(n_val-k_val))
+                st.success(f"Natija: {round(res, 6)}")
     
     if comp['status'] == 'started':
         time_left = get_time_left(comp)
