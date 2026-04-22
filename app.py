@@ -472,39 +472,94 @@ def student_page():
 
         with st.expander("🧮 Formula Kalkulyatori", expanded=True):
             f_type = st.selectbox("Hisoblash uchun formulani tanlang:", [
-                "Tanlang...", "P(n) - O'rin almashtirish", "A(n, k) - O'rinlashtirish", 
-                "C(n, k) - Guruhlash", "P(A) = m/n", "Bernulli formulasi"
+                "Tanlang...", 
+                "P(n) - O'rin almashtirish", 
+                "A(n, k) - O'rinlashtirish", 
+                "C(n, k) - Guruhlash", 
+                "P(A) = m/n - Klassik ta'rif",
+                "P(not A) - Zidd hodisa",
+                "P(A+B) - Hodisalar yig'indisi",
+                "Bernulli sxemasi",
+                "Puasson taqsimoti",
+                "To'la ehtimollik va Bayes (2 gipoteza)",
+                "Statistika (M[X], D[X], Sigma)"
             ])
+            
+            st.markdown("---")
             
             if f_type == "P(n) - O'rin almashtirish":
                 n_val = st.number_input("n =", min_value=0, max_value=170, step=1, key="calc_n_p")
-                st.success(f"Natija: {math.factorial(n_val):,}")
+                st.success(f"Natija (n!): {math.factorial(n_val):,}")
             
             elif f_type == "A(n, k) - O'rinlashtirish":
                 n_val = st.number_input("n =", min_value=0, step=1, key="calc_n_a")
                 k_val = st.number_input("k =", min_value=0, max_value=n_val, step=1, key="calc_k_a")
-                res = math.perm(n_val, k_val)
-                st.success(f"Natija: {res:,}")
+                st.success(f"Natija: {math.perm(n_val, k_val):,}")
                 
             elif f_type == "C(n, k) - Guruhlash":
                 n_val = st.number_input("n =", min_value=0, step=1, key="calc_n_c")
                 k_val = st.number_input("k =", min_value=0, max_value=n_val, step=1, key="calc_k_c")
-                res = math.comb(n_val, k_val)
-                st.success(f"Natija: {res:,}")
+                st.success(f"Natija: {math.comb(n_val, k_val):,}")
                 
-            elif f_type == "P(A) = m/n":
+            elif f_type == "P(A) = m/n - Klassik ta'rif":
                 m_val = st.number_input("m (qulay hollar) =", min_value=0, step=1, key="calc_m")
                 n_val = st.number_input("n (barcha hollar) =", min_value=1, step=1, key="calc_n_prob")
                 st.success(f"Natija: {round(m_val/n_val, 4)}")
+
+            elif f_type == "P(not A) - Zidd hodisa":
+                p_a = st.number_input("P(A) =", min_value=0.0, max_value=1.0, value=0.3, step=0.01)
+                st.success(f"P(not A) = {round(1-p_a, 4)}")
+
+            elif f_type == "P(A+B) - Hodisalar yig'indisi":
+                p_a = st.number_input("P(A) =", min_value=0.0, max_value=1.0, value=0.4, step=0.01, key="pa_sum")
+                p_b = st.number_input("P(B) =", min_value=0.0, max_value=1.0, value=0.5, step=0.01, key="pb_sum")
+                p_ab = st.number_input("P(AB) (birgalikda bo'lishi) =", min_value=0.0, max_value=min(p_a, p_b), value=0.0, step=0.01)
+                st.success(f"P(A+B) = {round(p_a + p_b - p_ab, 4)}")
                 
-            elif f_type == "Bernulli formulasi":
+            elif f_type == "Bernulli sxemasi":
                 col1, col2 = st.columns(2)
                 n_val = col1.number_input("n (jami) =", min_value=1, step=1, key="calc_n_b")
                 k_val = col2.number_input("k (kerakli) =", min_value=0, max_value=n_val, step=1, key="calc_k_b")
                 p_val = st.number_input("p (ehtimollik) =", min_value=0.0, max_value=1.0, value=0.5, step=0.01, key="calc_p_b")
-                q_val = 1 - p_val
-                res = math.comb(n_val, k_val) * (p_val**k_val) * (q_val**(n_val-k_val))
-                st.success(f"Natija: {round(res, 6)}")
+                res = math.comb(n_val, k_val) * (p_val**k_val) * ((1-p_val)**(n_val-k_val))
+                st.success(f"Natija P_n(k): {round(res, 6)}")
+
+            elif f_type == "Puasson taqsimoti":
+                lam = st.number_input("Lambda (λ = n*p) =", min_value=0.1, value=1.0, step=0.1)
+                k_val = st.number_input("k =", min_value=0, step=1, key="calc_k_pois")
+                res = (lam**k_val * math.exp(-lam)) / math.factorial(k_val)
+                st.success(f"Natija P(k): {round(res, 6)}")
+
+            elif f_type == "To'la ehtimollik va Bayes (2 gipoteza)":
+                st.markdown("##### Gipotezalar")
+                ph1 = st.number_input("P(H1) =", min_value=0.0, max_value=1.0, value=0.5, step=0.01)
+                ph2 = 1.0 - ph1
+                st.info(f"P(H2) avtomatik: {round(ph2, 2)}")
+                st.markdown("##### Shartli ehtimolliklar")
+                pah1 = st.number_input("P(A|H1) =", min_value=0.0, max_value=1.0, value=0.8, step=0.01)
+                pah2 = st.number_input("P(A|H2) =", min_value=0.0, max_value=1.0, value=0.4, step=0.01)
+                
+                pa = (ph1 * pah1) + (ph2 * pah2)
+                st.success(f"To'la ehtimollik P(A) = {round(pa, 4)}")
+                if pa > 0:
+                    st.success(f"Bayes P(H1|A) = {round((ph1*pah1)/pa, 4)}")
+                    st.success(f"Bayes P(H2|A) = {round((ph2*pah2)/pa, 4)}")
+
+            elif f_type == "Statistika (M[X], D[X], Sigma)":
+                x_str = st.text_input("X qiymatlari (vergul bilan):", "1, 2, 3")
+                p_str = st.text_input("P ehtimolliklar (vergul bilan):", "0.2, 0.5, 0.3")
+                try:
+                    xs = [float(x.strip()) for x in x_str.split(",")]
+                    ps = [float(p.strip()) for p in p_str.split(",")]
+                    if len(xs) == len(ps) and abs(sum(ps) - 1.0) < 0.01:
+                        mx = sum(x * p for x, p in zip(xs, ps))
+                        mx2 = sum((x**2) * p for x, p in zip(xs, ps))
+                        dx = mx2 - (mx**2)
+                        st.success(f"M(X) = {round(mx, 4)}")
+                        st.success(f"D(X) = {round(dx, 4)}")
+                        st.success(f"Sigma = {round(math.sqrt(dx), 4)}")
+                    else: st.warning("X va P soni teng bo'lishi va P yig'indisi 1 bo'lishi kerak!")
+                except: st.error("Ma'lumotlarni kiritishda xato!")
     
     if comp['status'] == 'started':
         time_left = get_time_left(comp)
